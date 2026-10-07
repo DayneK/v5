@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VEPA4 — Integrated Intelligence</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body class="theme-sanguine">
+    <div id="react-root" hidden aria-hidden="true"></div>
+    <div id="app">
+        <!-- CANVAS VIEWPORT -->
+        <canvas id="bg-canvas"></canvas>
+        <canvas id="sim-canvas"></canvas>
+
+        <!-- UI LAYER -->
+        <div id="ui-layer">
+            <!-- TOP TOOLBAR -->
+            <div id="top-toolbar">
+                <div class="toolbar-left">
+                    <button id="play-pause-btn" class="sq-btn active" title="Play/Pause">⏸</button>
+                </div>
+                <div class="toolbar-center">
+                    <span id="hud-particles" class="hud-item hud-population-orb" role="status" aria-label="Particle population loading" data-label="PARTICLES" title="Live particle population"></span>
+                    <span id="hud-species" class="hud-item hud-species" role="status" aria-label="Species loading">SPECIES —</span>
+                    <span id="hud-tick" class="hud-item hud-tick-compact" role="status" aria-label="Tick telemetry loading" style="white-space: pre-line; line-height: 1.05;">0
+0.0 TPS · 0.0 FPS</span>
+                </div>
+                <div class="toolbar-right">
+                    <button id="chaos-btn" class="sq-btn toolbar-gesture-btn" title="Chaos: tap to randomize, hold for settings" aria-label="Chaos: tap to randomize, hold for settings">☢️</button>
+                    <button id="restart-btn" class="sq-btn toolbar-gesture-btn" title="Restart: tap to restart, hold to reset" aria-label="Restart: tap to restart, hold to reset">🔄</button>
+                    <button id="undo-btn" class="sq-btn" title="Undo last world change" aria-label="Undo last world change" disabled>↶</button>
+                    <button id="help-toggle" class="sq-btn" title="Summon help drone" aria-label="Summon help drone">?</button>
+                </div>
+            </div>
+
+            <!-- BOTTOM DRAWER -->
+            <div id="drawer-container">
+                <div id="drawer-resize-handle" title="Drag to resize drawer" aria-label="Resize drawer"></div>
+                <div id="main-panel">
+                    <div class="tabs">
+                        <button id="drawer-zoom-out" class="tab-btn drawer-zoom-btn" title="Zoom out" aria-label="Zoom out">−</button>
+                        <button class="tab-btn active" data-tab="tab-setup" title="Setup" aria-label="Setup">⚙️</button>
+                        <button class="tab-btn" data-tab="tab-saves" title="World states (save / load / compare / undo)" aria-label="World states">🗃️</button>
+                        <button class="tab-btn" data-tab="tab-data" title="Data" aria-label="Data">📊</button>
+                        <button id="drawer-zoom-in" class="tab-btn drawer-zoom-btn" title="Zoom in" aria-label="Zoom in">+</button>
+                        <button id="drawer-hide-btn" class="tab-btn drawer-hide-btn" title="Hide drawer" aria-label="Hide drawer">▼</button>
+                        <button id="drawer-minimize-btn" class="tab-btn drawer-minimize-btn" title="Minimize drawer" aria-expanded="true">▁</button>
+                    </div>
+
+                    <div id="tab-data" class="tab-content">
+                        <div class="sub-tabs">
+                            <button class="sub-tab-btn active" data-sub="data-intel" title="Intelligence" aria-label="Intelligence">🧠</button>
+                            <button class="sub-tab-btn" data-sub="data-dna" title="DNA" aria-label="DNA">🧬</button>
+                            <button class="sub-tab-btn" data-sub="data-logs" title="Logs" aria-label="Logs">📜</button>
+                            <button class="sub-tab-btn" data-sub="data-groups" title="Groups (Set F — declared crews, roles, artifacts, alliances)" aria-label="Groups">🏙️</button>
+                            <button class="sub-tab-btn" data-sub="data-eco" title="Ecosystem (Set A)" aria-label="Ecosystem">🌿</button>
+                            <button class="sub-tab-btn" data-sub="data-civilization" title="Civilization (culture, tribes, polities)" aria-label="Civilization">🏛️</button>
+                        </div>
+                        <div id="data-intel" class="sub-tab-content active">
+                            <div id="intel-dashboard"></div>
+                        </div>
+                        <div id="data-dna" class="sub-tab-content">
+                            <div id="dna-analytics"></div>
+                            <div id="dna-charts">
+                                <div class="chart-row">
+                                    <div class="chart-section">
+                                        <h3 class="chart-title">POPULATION_TRENDS</h3>
+                                        <canvas id="pop-line-graph"></canvas>
+                                    </div>
+                                    <div class="chart-section">
+                                        <h3 class="chart-title">DIVERSITY_TREND</h3>
+                                        <canvas id="diversity-trend-graph"></canvas>
+                                    </div>
+                                </div>
+                                <div class="chart-section">
+                                    <h3 class="chart-title">STATE_SCATTER [MASS/NRG]</h3>
+                                    <canvas id="mass-nrg-scatter"></canvas>
+                                </div>
+                                <div class="chart-row">
+                                    <div class="chart-section">
+                                        <h3 class="chart-title">MASS_HISTOGRAM</h3>
+                                        <canvas id="mass-histogram"></canvas>
+                                    </div>
+                                    <div class="chart-section">
+                                        <h3 class="chart-title">ENERGY_DISTRIBUTION</h3>
+                                        <canvas id="energy-distribution"></canvas>
+                                    </div>
+                                </div>
+                                <div class="chart-row">
+                                    <div class="chart-section">
+                                        <h3 class="chart-title">AGE_DEMOGRAPHICS</h3>
+                                        <canvas id="age-demographics"></canvas>
+                                    </div>
+                                    <div class="chart-section">
+                                        <h3 class="chart-title">VELOCITY_DISTRIBUTION</h3>
+                                    <canvas id="velocity-distribution"></canvas>
+                                    </div>
+                                </div>
+                                <div class="chart-row">
+                                    <div class="chart-section">
+                                        <h3 class="chart-title">NRG_TREND</h3>
+                                        <canvas id="nrg-trend-graph"></canvas>
+                                    </div>
+                                    <div class="chart-section">
+                                        <h3 class="chart-title">MASS_TREND</h3>
+                                        <canvas id="mass-trend-graph"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="data-logs" class="sub-tab-content">
+                            <div id="narrative-panel"></div>
+                        </div>
+                        <div id="data-groups" class="sub-tab-content">
+                            <div id="groups-dashboard"></div>
+                        </div>
+                        <div id="data-eco" class="sub-tab-content">
+                            <div id="eco-dashboard"></div>
+                        </div>
+                        <div id="data-civilization" class="sub-tab-content">
+                            <div id="civilization-dashboard"></div>
+                        </div>
+                    </div>
+
+                    <div id="tab-setup" class="tab-content active">
+                        <div class="sub-tabs">
+                            <button class="sub-tab-btn active" data-sub="setup-laws" title="Laws" aria-label="Laws">⚖️</button>
+                            <button class="sub-tab-btn" data-sub="setup-world" title="World" aria-label="World">🌍</button>
+                            <button class="sub-tab-btn" data-sub="setup-species" title="Species" aria-label="Species">🦠</button>
+                            <button class="sub-tab-btn" data-sub="setup-settings" title="Settings" aria-label="Settings">🎛️</button>
+                        </div>
+                        <div id="setup-laws" class="sub-tab-content active">
+                            <div class="category-filter-row">
+                                <button class="cat-tab active" data-cat="cat-physics">PHYS</button>
+                                <button class="cat-tab active" data-cat="cat-biology">BIOL</button>
+                                <button class="cat-tab active" data-cat="cat-chemistry">CHEM</button>
+                                <button class="cat-tab active" data-cat="cat-thermodynamics">THERMO</button>
+                                <button class="cat-tab active" data-cat="cat-metaphysics">META</button>
+                                <button class="cat-tab active" data-cat="cat-electromagnetism">ELEC</button>
+                                <button class="cat-tab active" data-cat="cat-information">INFO</button>
+                                <button class="cat-tab active" data-cat="cat-quantum">QNTE</button>
+                                <button class="cat-tab active" data-cat="cat-mechanics">MECH</button>
+                            </div>
+                            <div id="law-info-module" class="law-info-module hidden"></div>
+                            <div class="law-search-row">
+                                <input id="law-search" type="search" autocomplete="off" spellcheck="false"
+                                       placeholder="Search 136 laws…" aria-label="Search laws by name">
+                                <button id="law-search-clear" class="law-search-clear" title="Clear search" aria-label="Clear search">✕</button>
+                                <span id="law-search-count" class="law-search-count" role="status" aria-live="polite"></span>
+                            </div>
+                            <div id="law-grid" class="law-icon-grid"></div>
+                        </div>
+                        <div id="setup-world" class="sub-tab-content">
+                            <div class="world-inner">
+                                <div id="world-params" class="world-sliders"></div>
+                                <div id="world-presets" class="world-presets"></div>
+                            </div>
+                        </div>
+                        <div id="setup-species" class="sub-tab-content">
+                            <div class="species-controls-header">
+                                <button id="add-species-btn" class="btn tiny-btn">+ SPECIES</button>
+                                <button id="remove-species-btn" class="btn tiny-btn" title="Remove last species">− SPECIES</button>
+                            </div>
+                            <div id="species-list"></div>
+                            <div id="dna-accordion"></div>
+                        </div>
+                        <div id="setup-settings" class="sub-tab-content">
+                            <div id="laws-panel"></div>
+                        </div>
+                    </div>
+
+                    <div id="tab-saves" class="tab-content">
+                        <div class="sub-tabs">
+                            <button class="sub-tab-btn active" data-sub="saves-states" title="Saved worlds — list, load, compare, delete" aria-label="Saved worlds">🗃️</button>
+                            <button class="sub-tab-btn" data-sub="saves-undo" title="Undo history — step backwards and forwards" aria-label="Undo">↶</button>
+                            <button class="sub-tab-btn" data-sub="saves-io" title="Import and export worlds as files" aria-label="Import / export">⇄</button>
+                        </div>
+                        <div id="saves-states" class="sub-tab-content active">
+                            <div id="saves-panel"></div>
+                        </div>
+                        <div id="saves-undo" class="sub-tab-content">
+                            <div id="undo-panel"></div>
+                        </div>
+                        <div id="saves-io" class="sub-tab-content">
+                            <div id="io-panel"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FLOATING DRAWER SHOW BUTTON (visible when drawer is hidden) -->
+            <button id="drawer-show-btn" class="drawer-show-btn" hidden title="Show drawer" aria-label="Show drawer">▲</button>
+        </div>
+    </div>
+    <!-- Inline non-module probe: records debug messages before ES modules
+         load. src/debug.js adopts the buffer; if the module bundle never
+         activates, a fallback banner surfaces the log after 3s. -->
+    <script>
+    (function(){
+      window.__VEPA_DEBUG__ = window.__VEPA_DEBUG__ || { messages: [] };
+      window.__VEPA_DEBUG__.messages.push({ t: Date.now(), level: 'info', text: 'INLINE JS: OK' });
+      window.addEventListener('error', function (e) {
+        var msg = e.message || 'script error';
+        if (e.error && (e.error.stack || e.error.message)) msg = e.error.stack || e.error.message;
+        window.__VEPA_DEBUG__.messages.push({ t: Date.now(), level: 'error', text: 'INLINE ERROR: ' + msg });
+      });
+      setTimeout(function () {
+        var d = window.__VEPA_DEBUG__;
+        if (d && d._active) return;               // module overlay took over
+        if (document.getElementById('vepa-debug')) return;
+        var b = document.createElement('div');
+        b.id = 'vepa-debug';
+        b.className = 'vepa-debug';
+        b.style.cssText = 'position:fixed;top:4px;left:4px;right:4px;z-index:99999;background:#222;color:#ff0;border:1px solid #555;padding:6px;font:11px monospace;white-space:pre-wrap;max-height:40vh;overflow:auto';
+        b.textContent = (d ? d.messages.map(function (m) {
+          return '[' + new Date(m.t).toLocaleTimeString() + '] ' + (m.level || 'info').toUpperCase() + ' ' + m.text;
+        }).join('\n') : 'MODULE LOAD FAILED');
+        document.body.prepend(b);
+      }, 3000);
+    })();
+    </script>
+    <script type="module" src="./src/react-entry.js"></script>
+</body>
+</html>

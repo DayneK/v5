@@ -1,0 +1,13 @@
+# 08 — Local renderer and visualization
+
+**Current evidence:** `src/render/renderer.js` provides Canvas2D; `createRendererAsync` optionally loads `pixiRenderer.js` and falls back to Canvas2D. `src/render/spriteSync.js` dispatches by backend. Rendering reads a particle buffer, uses `dna/expression.js` for color/radius/alpha, camera projection from `src/ui/camera.js`, phenotype caching and off-screen culling. There are two canvas layers for background and simulation. PixiJS is optional; Canvas2D remains reference. Browser benchmark evidence is required before any default/backend claim changes.
+
+## Target boundary
+
+Renderer consumes a backend-neutral, immutable `RenderFrame`/typed view: positions, presentation attributes or stable particle IDs, world/camera metadata, effects, tick/time and completeness/version. It does not own simulation state, decide authoritative law outcomes, or depend on worker/cloud implementation. Local rendering persists during cloud processing: snapshot arrival, interpolation, camera transform, canvas layout, overlays, and UI are browser responsibilities. Keep current visual contract as `classic` theme and renderer reference fixtures; new themes/features are additive and gated.
+
+Renderer adapter lifecycle: capability probe → initialize → resize/DPR → render coherent frame → report metrics/backend → dispose. Canvas2D stays mandatory fallback. Pixi/WebGL/WebGPU/WebGPU compute are separate capabilities. Avoid duplicating CPU math or semantics in shaders without differential/visual tests. Cache by world/frame identity, not a global mutable view that can mix multiplex sessions. Respect DPR caps, visibility/off-screen culling, device loss and reduced-power modes.
+
+## Acceptance
+
+Capture representative screenshots across viewport sizes, drawer expanded/minimized/hidden, different law palettes, particle densities, selection/hover/help and settings mode. Match layout, active states, color/contrast, touch targets and camera projection within reviewed tolerance. Verify frame consistency: no torn mixture of tick versions; interpolate only across compatible snapshots and do not overshoot boundaries. Report render FPS/frame time separately from simulation TPS/tick latency and network freshness. Measure Canvas2D/Pixi at representative devices/populations before choosing defaults. Browser validation must run on real browser engine; DOM stubs do not prove rendering.

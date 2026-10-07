@@ -1,0 +1,16 @@
+node_modules/
+dist/
+*.log
+.vercel
+test-results/
+playwright-report/
+isolate/
+
+# Single-lockfile authority: package-lock.json is the SSOT (AGENTS.md §1, and
+# CI installs with `npm ci`). bun may still be used locally, but its lockfile
+# must not be committed — two lockfiles for one dependency set drift silently.
+bun.lock
+
+# Pre-release changelog snapshots (§10.4 step 3). Never committed: they are
+# 200KB+ copies of the ledger and have no history value in the tree.
+CHANGELOG.md.bak-*

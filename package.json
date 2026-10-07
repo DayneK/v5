@@ -1,0 +1,41 @@
+{
+  "name": "vepa-v4",
+  "version": "9.3.1",
+  "description": "VEPA4 — Vector Emergent Physics Automata (Integrated Intelligence release)",
+  "type": "module",
+  "scripts": {
+    "concat": "node exports/generate-vepa-all.mjs",
+    "systems:bundle": "node scripts/generate-systems-bundle.mjs",
+    "report:ui": "node scripts/generate-ui-module-report.mjs",
+    "report:ui:check": "node scripts/generate-ui-module-report.mjs --check",
+    "generate:vepa-all": "node exports/generate-vepa-all.mjs",
+    "dev": "vite --host 0.0.0.0 --port ${PORT:-5180}",
+    "build": "vite build && node scripts/generate-ui-module-report.mjs && node scripts/publish-system-atlas.mjs",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "bench:render": "playwright test --config=playwright.bench.config.js",
+    "test:e2e:worker": "playwright test tests/e2e/physics-worker.spec.js",
+    "spec:generate": "node scripts/generate-spec.mjs",
+    "spec:check": "node scripts/generate-spec.mjs --check",
+    "repository:check": "npm run spec:check && node scripts/check-repository.mjs && npm run report:ui:check",
+    "syntax-check": "find src -name '*.js' -exec node --check {} +",
+    "bench:backends": "node bench/backend-compare.mjs",
+    "audit:inventory": "node scripts/audit-corpus-report.mjs",
+    "artifact:inventory": "node scripts/repository-artifact-report.mjs",
+    "provenance:check": "node scripts/validate-provenance.mjs",
+    "exports:check": "node scripts/check-export-publication.mjs",
+    "bench:backends:json": "node bench/backend-compare.mjs --json"
+  },
+  "dependencies": {
+    "pixi.js": "^8.18.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "vite": "^8.0.8",
+    "vitest": "^3.2.7"
+  }
+}

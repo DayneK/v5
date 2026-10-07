@@ -1,0 +1,50 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      # Gate the deploy on the full test suite. 951 unit + audit tests cover
+      # the law contract, solver, engines and subsystems; a regression must not
+      # reach gh-pages green.
+      - run: npm ci
+      - run: npm test
+
+      # Contract gates: the generated spec tree must match its source, and the
+      # repository law/provenance/signoff manifests must be internally valid.
+      - name: Verify spec + repository contracts
+        run: npm run repository:check
+
+      # Build the v4 app (repo root) for the /vepa/ project page.
+      - run: npm run build
+        env:
+          VITE_BASE: /vepa/
+
+      # Deploy to the gh-pages branch (Pages source, legacy build type).
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
