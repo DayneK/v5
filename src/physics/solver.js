@@ -15,6 +15,7 @@ import {
 import { runtimeConfig } from '../state/runtimeConfig.js';
 import { isAlive } from '../state/particleBuffer.js';
 import { isSet } from '../state/lawState.js';
+import { resolveGravityBackend } from './approximations.js';
 import { createGrid, clear, insert, getNeighbors } from './spatialGrid.js';
 // v8.17 — Barnes–Hut long-range gravity engine (opt-in via runtimeConfig.gravEngine)
 import { createOctree, buildOctree, octreeGravity } from './octree.js';
@@ -466,14 +467,16 @@ export function solve(particleBuffer, particleCount, stride, lawState, dnaBuffer
 
   // ── Phase 3: Pairwise interactions + integration ──
 
-  // v8.17 — gravity engine selection. 'bh' swaps the pairwise GRAV term for
-  // one Barnes–Hut octree query per particle (O(N log N)); the tree is built
-  // once per tick over all alive, positive-mass particles. Far-field
-  // aggregates drop per-pair DNA modifiers (FORCE/TIDAL/HIDDEN_MASS) and the
-  // star-collapse boost — documented approximation; 'exact' stays the default.
+  // D4 gravity backend selection: runtimeConfig.gravEngine is only a request.
+  // Approximate execution needs a registered, accepted, explicitly enabled
+  // gate AND an approximate GRAV lawPlan entry. Every other case retains the
+  // exact pairwise path (including experimental BH/FMM until approved).
+  const gravityResolution = resolveGravityBackend(runtimeConfig.gravEngine, {
+    enabled: runtimeConfig.approximationGates,
+  });
   _bhActive = false;
   let _fmmActive = false;
-  if (active[LAW_INDEXES.GRAV] && runtimeConfig.gravEngine === 'fmm' && particleCount > 0) {
+  if (active[LAW_INDEXES.GRAV] && gravityResolution.backend === 'cpu-fmm' && particleCount > 0) {
     const [fx, fy, fz] = ensureFmmOutputs(particleCount);
     fx.fill(0, 0, particleCount);
     fy.fill(0, 0, particleCount);
@@ -483,19 +486,19 @@ export function solve(particleBuffer, particleCount, stride, lawState, dnaBuffer
   }
   if (
     active[LAW_INDEXES.GRAV] &&
-    runtimeConfig.gravEngine === 'bh' &&
+    gravityResolution.backend === 'cpu-bh' &&
     particleCount > 0
   ) {
     const theta = Number(runtimeConfig.gravTheta);
     _bhTheta = Number.isFinite(theta) ? Math.max(0, theta) : 0.5;
     if (!_bhTree) _bhTree = createOctree(Math.max(1024, particleCount));
     buildOctree(_bhTree, view, stride, particleCount, worldSize);
-    _bhTree.useQuadrupole = runtimeConfig.gravEngine === 'fmm';
+    _bhTree.useQuadrupole = gravityResolution.backend === 'cpu-fmm';
     _bhActive = true;
   }
 
-  // v8.17 — solo-gravity fast path: when the BH engine is running and GRAV is
-  // the ONLY active law, every force comes from the octree query below, so the
+  // v8.17 — solo-gravity fast path: when the Barnes–Hut engine is running and
+  // GRAV is the ONLY active law, every force comes from the octree query below, so the
   // 27-cell neighbour gather and the whole pairwise loop are dead weight.
   // Popcount over the four flag words detects the single-law case in O(1).
   let bhSoloGravity = false;

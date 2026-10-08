@@ -24,10 +24,12 @@ export const runtimeConfig = {
   signalScale: 1.0,    // global communication DNA multiplier
   // v8.17 — gravity engine: 'exact' (default, per-pair DNA-aware), 'bh'
   // (Barnes–Hut monopole, O(N log N)), or 'fmm' (BH + quadrupole correction,
-  // ~10× more accurate at the same theta). gravTheta is the opening angle
-  // (0 = exact traversal; 0.4–0.7 typical). See src/physics/octree.js.
+  // ~10× more accurate at the same theta). Selection is exact-fallback unless
+  // its gravity approximation gate id is explicitly enabled below.
+  // gravTheta is the opening angle (0 = exact traversal; 0.4–0.7 typical).
   gravEngine: 'exact',
   gravTheta: 0.5,
+  approximationGates: [], // opt-in registry gate ids; empty keeps all paths exact.
   // v9.0 — compute engine: GPU is the user-facing default. The worker probes
   // WebGPU once and falls back to the validated CPU path when unavailable;
   // explicit CPU selection remains available in SETTINGS > COMPUTE.

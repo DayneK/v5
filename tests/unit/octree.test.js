@@ -117,10 +117,12 @@ describe('octree', () => {
 describe('solver GRAV_ENGINE=bh', () => {
   afterEach(() => {
     runtimeConfig.gravEngine = 'exact';
+    runtimeConfig.approximationGates = [];
   });
 
-  function runTicks(engine, ticks = 3) {
+  function runTicks(engine, ticks = 3, approximationGates = []) {
     runtimeConfig.gravEngine = engine;
+    runtimeConfig.approximationGates = approximationGates;
     const N = 400;
     const buf = makeCloud(N, 999);
     const law = createLawState();
@@ -130,9 +132,17 @@ describe('solver GRAV_ENGINE=bh', () => {
     return buf;
   }
 
-  it('moves particles similarly to the exact engine and stays finite', () => {
+  it('keeps requested BH/FMM exact while their registry entries are experimental', () => {
     const exact = runTicks('exact');
-    const bh = runTicks('bh');
+    const bh = runTicks('bh', 3, ['gravity-barnes-hut']);
+    const fmm = runTicks('fmm', 3, ['gravity-fmm']);
+    expect(Array.from(bh)).toEqual(Array.from(exact));
+    expect(Array.from(fmm)).toEqual(Array.from(exact));
+  });
+
+  it('keeps particles finite when the exact gravity fallback is selected', () => {
+    const exact = runTicks('exact');
+    const bh = runTicks('bh', 3, ['gravity-barnes-hut']);
     let sumExact = 0, sumBh = 0;
     for (let i = 0; i < 400; i++) {
       const b = i * STRIDE;
