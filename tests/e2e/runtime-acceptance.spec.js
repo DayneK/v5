@@ -3,6 +3,13 @@ import { test, expect } from '@playwright/test';
 async function openRuntime(page) {
   await page.goto('./');
   await expect(page.locator('canvas').first()).toBeVisible({ timeout: 15_000 });
+  // The launch modal gates boot: panels — including the law-grid toggles —
+  // are mounted by initUI only after the launch choice resolves, so confirm
+  // the modal before asserting on anything it installs. Without this the
+  // selectors below match zero elements forever.
+  const launch = page.locator('.launch-primary[data-act="launch"]');
+  await launch.waitFor({ state: 'visible', timeout: 20_000 });
+  await launch.click();
   // Canvas visibility only proves the shell HTML rendered; the law grid and
   // HUD are mounted by initUI after the module bundle boots.
   await page.waitForFunction(() => Boolean(window.__VEPA_DEBUG__?._active), null, { timeout: 30_000 });

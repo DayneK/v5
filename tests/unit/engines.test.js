@@ -1,10 +1,62 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { EventBus } from '../../src/core/eventBus.js';
 import { PARTICLE_STRIDE, STRIDE_INDEXES } from '../../src/constants.js';
 import { createInsightEngine, updateInsight, clusterTrend } from '../../src/engines/insightEngine.js';
 import { createLineageTracker, trackBirth, trackDeath, getStats } from '../../src/engines/lineageTracker.js';
 import { createTimelineEngine, snapshot as timelineSnapshot, scrub as timelineScrub, getTimeline, getLatest, clearTimeline } from '../../src/engines/timelineEngine.js';
 import { createGoalEngine, updateGoal, setGoalValue } from '../../src/engines/goalEngine.js';
+import { createNarrativeEngine, updateNarrative, resetNarrativeEngine } from '../../src/engines/narrativeEngine.js';
+
+describe('VEPA4 Narrative Engine', () => {
+    it('does not use ambient Math.random for narrative choices', () => {
+        const source = readFileSync(new URL('../../src/engines/narrativeEngine.js', import.meta.url), 'utf8');
+        expect(source.includes('Math.random(')).toBe(false);
+    });
+
+    function narrativeEntries(seed, rng) {
+        const bus = new EventBus();
+        const engine = createNarrativeEngine(bus, { seed, rng, globalCooldown: 0, cooldown: 0 });
+        const entries = [];
+        bus.on('narrative:entry', (entry) => entries.push(entry));
+        bus.emit('law:toggled', { name: 'GRAV', value: true });
+        updateNarrative(engine);
+        return entries;
+    }
+
+    it('replays the same voice and template sequence from a seed', () => {
+        const first = narrativeEntries(0xC0FFEE);
+        const second = narrativeEntries(0xC0FFEE);
+        expect(first).toEqual(second);
+        expect(first).toHaveLength(1);
+    });
+
+    it('uses an explicitly supplied random source in preference to its seed', () => {
+        const rng = vi.fn(() => 0);
+        const entries = narrativeEntries(0xC0FFEE, rng);
+        expect(entries[0].voice).toBe('Stabilizer');
+        expect(rng).toHaveBeenCalledTimes(2);
+    });
+
+    it('resets seeded randomness, cooldowns, queued events and frame for the next world', () => {
+        const bus = new EventBus();
+        const engine = createNarrativeEngine(bus, { seed: 0xC0FFEE, globalCooldown: 0, cooldown: 0 });
+        const entries = [];
+        bus.on('narrative:entry', (entry) => entries.push(entry));
+        const emitOne = () => {
+            bus.emit('law:toggled', { name: 'GRAV', value: true });
+            updateNarrative(engine);
+            return entries.at(-1);
+        };
+
+        const first = emitOne();
+        engine.recentEvents.push({ type: 'law', data: { name: 'stale' }, frame: engine.frame });
+        resetNarrativeEngine(engine, 0xC0FFEE);
+        expect(engine.frame).toBe(0);
+        expect(engine.recentEvents).toEqual([]);
+        expect(emitOne()).toEqual(first);
+    });
+});
 
 describe('VEPA4 Insight Engine', () => {
     it('detects clusters of nearby particles', () => {

@@ -8,13 +8,13 @@
 
 | Index | Law | Status | Help | Implementation |
 | --- | --- | --- | --- | --- |
-| 0 | [GRAV](../../physics/000_GRAV.md) | wired | NONE | src/physics/laws.js |
+| 0 | [GRAV](../../physics/000_GRAV.md) | wired | NONE | src/physics/approximations.js |
 | 1 | [DRAG](../../physics/001_DRAG.md) | wired | NONE | src/physics/laws.js |
 | 2 | [ENTR](../../physics/002_ENTR.md) | wired | NONE | src/physics/solver.js |
 | 3 | [BUOYANCY](../../physics/003_BUOYANCY.md) | wired | NONE | src/physics/laws.js |
 | 4 | [COLL](../../physics/004_COLL.md) | wired | NONE | src/physics/fields.js |
-| 5 | [ACCR](../../physics/005_ACCR.md) | wired | NONE | src/physics/interactionSpace.js |
-| 6 | [PLANETARY](../../physics/006_PLANETARY.md) | wired | NONE | src/physics/gpuCompute.js |
+| 5 | [ACCR](../../physics/005_ACCR.md) | wired | NONE | src/physics/approximations.js |
+| 6 | [PLANETARY](../../physics/006_PLANETARY.md) | wired | NONE | src/physics/approximations.js |
 | 38 | [VOID](../../physics/038_VOID.md) | wired | NONE | src/physics/laws.js |
 | 39 | [BOND](../../physics/039_BOND.md) | wired | NONE | src/physics/interactionSpace.js |
 | 79 | [SINGULARITY](../../physics/079_SINGULARITY.md) | wired | NONE | src/physics/interactionSpace.js |

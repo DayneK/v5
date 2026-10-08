@@ -60,9 +60,10 @@ describe('FMM backend boundaries', () => {
     }
   });
 
-  it('keeps FMM opt-in and outside the default solver path', () => {
+  it('routes FMM requests through the gravity approximation gate before the default solver path', () => {
     const solver = readFileSync(new URL('../../src/physics/solver.js', import.meta.url), 'utf8');
-    expect(solver).toContain("runtimeConfig.gravEngine === 'fmm'");
+    expect(solver).toContain('resolveGravityBackend(runtimeConfig.gravEngine');
+    expect(solver).toContain("gravityResolution.backend === 'cpu-fmm'");
     const config = readFileSync(new URL('../../src/state/runtimeConfig.js', import.meta.url), 'utf8');
     expect(config).toMatch(/gravEngine[\s\S]{0,80}?(exact|bh)/);
     expect(config).not.toMatch(/gravEngine\s*:\s*'fmm'/);

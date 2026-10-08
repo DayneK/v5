@@ -30,7 +30,7 @@
 
 ## Verification evidence
 
-- Tests: [tests/audit/batch_19.test.js](tests/audit/batch_19.test.js), [tests/unit/codex.test.js](tests/unit/codex.test.js), [tests/unit/dataPanels.test.js](tests/unit/dataPanels.test.js), [tests/unit/synergyCache.test.js](tests/unit/synergyCache.test.js)
+- Tests: [tests/audit/batch_19.test.js](tests/audit/batch_19.test.js), [tests/unit/civilizationSequelWiring.test.js](tests/unit/civilizationSequelWiring.test.js), [tests/unit/codex.test.js](tests/unit/codex.test.js), [tests/unit/dataPanels.test.js](tests/unit/dataPanels.test.js), [tests/unit/synergyCache.test.js](tests/unit/synergyCache.test.js)
 - Audits: [docs/audit/laws/a3/all_category_docs.md](docs/audit/laws/a3/all_category_docs.md), [docs/audit/laws/a3/all_stage_1.md](docs/audit/laws/a3/all_stage_1.md), [docs/audit/laws/a3/all_stage_2.md](docs/audit/laws/a3/all_stage_2.md), [docs/audit/laws/a3/all_stage_3.md](docs/audit/laws/a3/all_stage_3.md), [docs/audit/laws/a3/audit_progress.md](docs/audit/laws/a3/audit_progress.md), [docs/audit/laws/a3/information.md](docs/audit/laws/a3/information.md), [docs/audit/laws/a3/mega_law_audit_ensemble.md](docs/audit/laws/a3/mega_law_audit_ensemble.md), [docs/audit/laws/a3/stage-1/74_CODE.md](docs/audit/laws/a3/stage-1/74_CODE.md), [docs/audit/laws/a3/stage-2/74_CODE.md](docs/audit/laws/a3/stage-2/74_CODE.md), [docs/audit/laws/a3/stage-3/74_CODE.md](docs/audit/laws/a3/stage-3/74_CODE.md)
 
 ## Interpretation boundary

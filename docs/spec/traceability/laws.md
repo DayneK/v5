@@ -4,20 +4,20 @@
 
 | Index | Law | Category | Gate refs | Implementation | Tests | Help |
 | --- | --- | --- | --- | --- | --- | --- |
-| 0 | [GRAV](../laws/physics/000_GRAV.md) | physics | 2 | 4 | 17 | NONE |
-| 1 | [DRAG](../laws/physics/001_DRAG.md) | physics | 2 | 2 | 7 | NONE |
+| 0 | [GRAV](../laws/physics/000_GRAV.md) | physics | 2 | 5 | 21 | NONE |
+| 1 | [DRAG](../laws/physics/001_DRAG.md) | physics | 2 | 2 | 8 | NONE |
 | 2 | [ENTR](../laws/physics/002_ENTR.md) | physics | 2 | 1 | 6 | NONE |
-| 3 | [BUOYANCY](../laws/physics/003_BUOYANCY.md) | physics | 0 | 1 | 26 | NONE |
+| 3 | [BUOYANCY](../laws/physics/003_BUOYANCY.md) | physics | 0 | 1 | 27 | NONE |
 | 4 | [COLL](../laws/physics/004_COLL.md) | physics | 2 | 8 | 14 | NONE |
-| 5 | [ACCR](../laws/physics/005_ACCR.md) | physics | 1 | 6 | 4 | NONE |
-| 6 | [PLANETARY](../laws/physics/006_PLANETARY.md) | physics | 1 | 5 | 5 | NONE |
+| 5 | [ACCR](../laws/physics/005_ACCR.md) | physics | 1 | 7 | 5 | NONE |
+| 6 | [PLANETARY](../laws/physics/006_PLANETARY.md) | physics | 1 | 6 | 6 | NONE |
 | 7 | [LIFE](../laws/biology/007_LIFE.md) | biology | 2 | 3 | 15 | NONE |
 | 8 | [GLOW](../laws/biology/008_GLOW.md) | biology | 2 | 3 | 2 | NONE |
 | 9 | [AFFINITY](../laws/biology/009_AFFINITY.md) | biology | 1 | 2 | 7 | NONE |
 | 10 | [REPRO](../laws/biology/010_REPRO.md) | biology | 2 | 4 | 9 | NONE |
 | 11 | [TRACK](../laws/biology/011_TRACK.md) | biology | 1 | 3 | 1 | NONE |
 | 12 | [SENESCENCE](../laws/biology/012_SENESCENCE.md) | biology | 0 | 1 | 2 | NONE |
-| 13 | [ENERGY](../laws/biology/013_ENERGY.md) | biology | 1 | 13 | 59 | NONE |
+| 13 | [ENERGY](../laws/biology/013_ENERGY.md) | biology | 1 | 13 | 61 | NONE |
 | 14 | [RADIATION](../laws/biology/014_RADIATION.md) | biology | 1 | 2 | 3 | NONE |
 | 15 | [GENOTYPE](../laws/biology/015_GENOTYPE.md) | biology | 2 | 3 | 2 | NONE |
 | 16 | [PHENOTYPE](../laws/biology/016_PHENOTYPE.md) | biology | 2 | 2 | 1 | NONE |
@@ -41,13 +41,13 @@
 | 34 | [FATE](../laws/metaphysics/034_FATE.md) | metaphysics | 1 | 3 | 2 | NONE |
 | 35 | [WILL](../laws/metaphysics/035_WILL.md) | metaphysics | 1 | 3 | 2 | NONE |
 | 36 | [SOUL_LAW](../laws/metaphysics/036_SOUL_LAW.md) | metaphysics | 1 | 2 | 2 | NONE |
-| 37 | [MIND](../laws/metaphysics/037_MIND.md) | metaphysics | 1 | 4 | 3 | NONE |
+| 37 | [MIND](../laws/metaphysics/037_MIND.md) | metaphysics | 1 | 4 | 4 | NONE |
 | 38 | [VOID](../laws/physics/038_VOID.md) | physics | 1 | 2 | 2 | NONE |
-| 39 | [BOND](../laws/physics/039_BOND.md) | physics | 1 | 6 | 23 | NONE |
+| 39 | [BOND](../laws/physics/039_BOND.md) | physics | 1 | 6 | 24 | NONE |
 | 40 | [REDUCTION](../laws/chemistry/040_REDUCTION.md) | chemistry | 1 | 2 | 1 | NONE |
 | 41 | [ALLOY](../laws/chemistry/041_ALLOY.md) | chemistry | 1 | 4 | 2 | NONE |
 | 42 | [MELT](../laws/thermodynamics/042_MELT.md) | thermodynamics | 1 | 2 | 2 | NONE |
-| 43 | [BOIL](../laws/thermodynamics/043_BOIL.md) | thermodynamics | 1 | 2 | 1 | NONE |
+| 43 | [BOIL](../laws/thermodynamics/043_BOIL.md) | thermodynamics | 1 | 2 | 2 | NONE |
 | 44 | [CONDENSE](../laws/thermodynamics/044_CONDENSE.md) | thermodynamics | 1 | 2 | 1 | NONE |
 | 45 | [DEPOSIT](../laws/thermodynamics/045_DEPOSIT.md) | thermodynamics | 1 | 2 | 1 | NONE |
 | 46 | [EXOTHERMIC](../laws/thermodynamics/046_EXOTHERMIC.md) | thermodynamics | 1 | 2 | 2 | NONE |
@@ -70,7 +70,7 @@
 | 63 | [DISCHARGE](../laws/electromagnetism/063_DISCHARGE.md) | electromagnetism | 1 | 3 | 2 | NONE |
 | 64 | [PLASMA](../laws/electromagnetism/064_PLASMA.md) | electromagnetism | 1 | 3 | 2 | NONE |
 | 65 | [SUPERCONDUCTIVITY](../laws/electromagnetism/065_SUPERCONDUCTIVITY.md) | electromagnetism | 1 | 3 | 3 | NONE |
-| 66 | [MEMORY](../laws/information/066_MEMORY.md) | information | 1 | 6 | 27 | NONE |
+| 66 | [MEMORY](../laws/information/066_MEMORY.md) | information | 1 | 7 | 27 | NONE |
 | 67 | [PATTERN](../laws/information/067_PATTERN.md) | information | 1 | 3 | 3 | NONE |
 | 68 | [STIGMERGY](../laws/information/068_STIGMERGY.md) | information | 1 | 3 | 3 | NONE |
 | 69 | [SIGNAL_BOOST](../laws/information/069_SIGNAL_BOOST.md) | information | 1 | 3 | 1 | NONE |
@@ -78,7 +78,7 @@
 | 71 | [SYMBOL](../laws/information/071_SYMBOL.md) | information | 1 | 3 | 1 | NONE |
 | 72 | [METRIC](../laws/information/072_METRIC.md) | information | 1 | 2 | 1 | NONE |
 | 73 | [PREDICT](../laws/information/073_PREDICT.md) | information | 1 | 3 | 1 | NONE |
-| 74 | [CODE](../laws/information/074_CODE.md) | information | 1 | 3 | 4 | NONE |
+| 74 | [CODE](../laws/information/074_CODE.md) | information | 1 | 3 | 5 | NONE |
 | 75 | [PROTOCOL](../laws/information/075_PROTOCOL.md) | information | 1 | 3 | 1 | NONE |
 | 76 | [FEEDBACK](../laws/information/076_FEEDBACK.md) | information | 1 | 3 | 4 | NONE |
 | 77 | [LANGUAGE](../laws/information/077_LANGUAGE.md) | information | 1 | 3 | 3 | NONE |
@@ -91,7 +91,7 @@
 | 84 | [HORIZON](../laws/physics/084_HORIZON.md) | physics | 1 | 3 | 2 | NONE |
 | 85 | [RADIATION_PRESSURE](../laws/physics/085_RADIATION_PRESSURE.md) | physics | 1 | 1 | 0 | NONE |
 | 86 | [MASS_INERTIA](../laws/physics/086_MASS_INERTIA.md) | physics | 1 | 1 | 0 | NONE |
-| 87 | [FIELD](../laws/physics/087_FIELD.md) | physics | 1 | 3 | 5 | NONE |
+| 87 | [FIELD](../laws/physics/087_FIELD.md) | physics | 1 | 3 | 6 | NONE |
 | 88 | [SYMBIOSIS](../laws/biology/088_SYMBIOSIS.md) | biology | 1 | 4 | 1 | NONE |
 | 89 | [PARASITE](../laws/biology/089_PARASITE.md) | biology | 1 | 4 | 1 | NONE |
 | 90 | [HIBERNATION](../laws/biology/090_HIBERNATION.md) | biology | 1 | 1 | 1 | NONE |
@@ -131,10 +131,10 @@
 | 124 | [SPECTRAL](../laws/quantum/124_SPECTRAL.md) | quantum | 1 | 1 | 1 | NONE |
 | 125 | [WAVEFUNCTION](../laws/quantum/125_WAVEFUNCTION.md) | quantum | 1 | 1 | 1 | NONE |
 | 126 | [HYPERPLANE](../laws/quantum/126_HYPERPLANE.md) | quantum | 1 | 1 | 1 | NONE |
-| 127 | [ANTIMATTER](../laws/quantum/127_ANTIMATTER.md) | quantum | 1 | 2 | 2 | NONE |
-| 128 | [CONTACT](../laws/mechanics/128_CONTACT.md) | mechanics | 1 | 5 | 6 | MECHANICS_HELP |
-| 129 | [MOMENTUM](../laws/mechanics/129_MOMENTUM.md) | mechanics | 1 | 3 | 4 | MECHANICS_HELP |
-| 130 | [WRAP](../laws/mechanics/130_WRAP.md) | mechanics | 2 | 4 | 5 | MECHANICS_HELP |
+| 127 | [ANTIMATTER](../laws/quantum/127_ANTIMATTER.md) | quantum | 1 | 2 | 3 | NONE |
+| 128 | [CONTACT](../laws/mechanics/128_CONTACT.md) | mechanics | 1 | 5 | 7 | MECHANICS_HELP |
+| 129 | [MOMENTUM](../laws/mechanics/129_MOMENTUM.md) | mechanics | 1 | 3 | 5 | MECHANICS_HELP |
+| 130 | [WRAP](../laws/mechanics/130_WRAP.md) | mechanics | 2 | 4 | 8 | MECHANICS_HELP |
 | 131 | [TORQUE](../laws/mechanics/131_TORQUE.md) | mechanics | 1 | 3 | 4 | MECHANICS_HELP |
 | 132 | [CONSTRAINT](../laws/mechanics/132_CONSTRAINT.md) | mechanics | 1 | 3 | 1 | MECHANICS_HELP |
 | 133 | [FRAGMENTATION](../laws/mechanics/133_FRAGMENTATION.md) | mechanics | 1 | 2 | 2 | MECHANICS_HELP |

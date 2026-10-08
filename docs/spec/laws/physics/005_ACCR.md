@@ -26,11 +26,11 @@
 
 ## Implementation evidence
 
-[src/physics/interactionSpace.js](src/physics/interactionSpace.js), [src/physics/lawgroups/mechanicsHelp.js](src/physics/lawgroups/mechanicsHelp.js), [src/physics/laws.js](src/physics/laws.js), [src/physics/mergePhysics.js](src/physics/mergePhysics.js), [src/physics/solver.js](src/physics/solver.js), [src/physics/synergy.js](src/physics/synergy.js)
+[src/physics/approximations.js](src/physics/approximations.js), [src/physics/interactionSpace.js](src/physics/interactionSpace.js), [src/physics/lawgroups/mechanicsHelp.js](src/physics/lawgroups/mechanicsHelp.js), [src/physics/laws.js](src/physics/laws.js), [src/physics/mergePhysics.js](src/physics/mergePhysics.js), [src/physics/solver.js](src/physics/solver.js), [src/physics/synergy.js](src/physics/synergy.js)
 
 ## Verification evidence
 
-- Tests: [tests/audit/batch_02.test.js](tests/audit/batch_02.test.js), [tests/audit/params_batch_11.test.js](tests/audit/params_batch_11.test.js), [tests/unit/interactionSpace.test.js](tests/unit/interactionSpace.test.js), [tests/unit/synergyCache.test.js](tests/unit/synergyCache.test.js)
+- Tests: [tests/audit/batch_02.test.js](tests/audit/batch_02.test.js), [tests/audit/params_batch_11.test.js](tests/audit/params_batch_11.test.js), [tests/unit/approximationRegistry.test.js](tests/unit/approximationRegistry.test.js), [tests/unit/interactionSpace.test.js](tests/unit/interactionSpace.test.js), [tests/unit/synergyCache.test.js](tests/unit/synergyCache.test.js)
 - Audits: [docs/audit/laws/a3/all_category_docs.md](docs/audit/laws/a3/all_category_docs.md), [docs/audit/laws/a3/all_stage_1.md](docs/audit/laws/a3/all_stage_1.md), [docs/audit/laws/a3/all_stage_2.md](docs/audit/laws/a3/all_stage_2.md), [docs/audit/laws/a3/all_stage_3.md](docs/audit/laws/a3/all_stage_3.md), [docs/audit/laws/a3/audit_progress.md](docs/audit/laws/a3/audit_progress.md), [docs/audit/laws/a3/mega_law_audit_ensemble.md](docs/audit/laws/a3/mega_law_audit_ensemble.md), [docs/audit/laws/a3/physics.md](docs/audit/laws/a3/physics.md), [docs/audit/laws/a3/stage-1/05_ACCR.md](docs/audit/laws/a3/stage-1/05_ACCR.md), [docs/audit/laws/a3/stage-2/05_ACCR.md](docs/audit/laws/a3/stage-2/05_ACCR.md), [docs/audit/laws/a3/stage-3/05_ACCR.md](docs/audit/laws/a3/stage-3/05_ACCR.md)
 
 ## Interpretation boundary

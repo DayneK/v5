@@ -25,6 +25,7 @@ function cloud(count) {
 
 afterEach(() => {
   runtimeConfig.gravEngine = 'exact';
+  runtimeConfig.approximationGates = [];
   runtimeConfig.computeEngine = 'cpu';
 });
 
@@ -55,15 +56,20 @@ describe('FMM solver path', () => {
     expect([...fx, ...fy, ...fz].every(Number.isFinite)).toBe(true);
   });
 
-  it('runs the dedicated fmm engine without corrupting particle state', () => {
-    const view = cloud(32);
-    const beforeMass = view[6];
+  it('keeps an FMM request on the exact path while its registry gate is experimental', () => {
+    const exactView = cloud(32);
+    const fmmView = cloud(32);
     const laws = createLawState();
     lawSet(laws, LAW_INDEXES.GRAV);
+
+    runtimeConfig.gravEngine = 'exact';
+    solve(exactView, 32, STRIDE, laws, null, WORLD, 0.1, new SplitMix32(7));
     runtimeConfig.gravEngine = 'fmm';
-    solve(view, 32, STRIDE, laws, null, WORLD, 0.1, new SplitMix32(7));
-    expect(view[6]).toBe(beforeMass);
-    for (let i = 0; i < view.length; i++) expect(Number.isFinite(view[i])).toBe(true);
-    expect(view.some((value, i) => i % STRIDE === 3 && value !== 0)).toBe(true);
+    runtimeConfig.approximationGates = ['gravity-fmm'];
+    solve(fmmView, 32, STRIDE, laws, null, WORLD, 0.1, new SplitMix32(7));
+
+    expect(Array.from(fmmView)).toEqual(Array.from(exactView));
+    expect(fmmView[6]).toBe(exactView[6]);
+    expect(fmmView.some((value, i) => i % STRIDE === 3 && value !== 0)).toBe(true);
   });
 });

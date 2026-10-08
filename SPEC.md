@@ -1,7 +1,35 @@
 # Feature Specification: VEPA4 — Integrated Intelligence
 
-**Version**: 9.3.1 | **Date**: 2026-10-07 | **Base**: VEPA4 integrated intelligence
+**Version**: 9.4.0 | **Date**: 2026-10-08 | **Base**: VEPA4 integrated intelligence
 **Audit input**: `docs/DEEP_AUDIT_CLARIFICATIONS.md` and `docs/audit/laws/a3/`
+
+## Working-tree Update (v9.4.0 — 2026-10-08)
+
+- **Easy Mode ControlProfile:** WORLD and SPECIES surfaces gain an independent,
+  persisted EASY/ADVANCED toggle (first run defaults to EASY). EASY exposes
+  composite recipe sliders declared in `src/state/controlProfile.js`
+  (`vepa-control-profile/v1`): 5 world recipes (scale, population caps, motion,
+  environment, life/flow) and 6 species recipes (motion, resilience, metabolism,
+  signaling, reproduction, appearance), each anchored through canonical
+  defaults, previewed before/after on drag, applied atomically through the
+  canonical event paths (`world:paramsPatch` → per-key canonical handling +
+  one `world:paramsApplied`; species DNA writes + one `dna:changed`).
+  ADVANCED keeps every current control; saves are unaffected. A per-group
+  `customized` flag reports mixed Advanced values.
+- **RB approval gates answered** in `docs/spec/rb/DECISIONS.md`: evidence-gated
+  parameter additions (policy + enforced record), provider-neutral
+  `ComputeSession` (`vepa-compute-session/1.0.0`, local adapters default,
+  remote port only), gated approximation registry (per-stage/per-backend/per-law
+  tolerances, exact-by-default), single-package module catalog with versioned
+  ports, and a browser QA matrix.
+- **P4 decomposition:** worker transport, population lifecycle, and cached
+  intelligence cadence/death scans are extracted into injected modules while
+  `main.js` retains facade call sites and boot/engine ordering. No physics law
+  behavior changed.
+- **Browser verification:** Playwright targets the managed preview via
+  `VEPA_E2E_BASE_URL`; the P4 working-tree run passed 11/11 across bounded
+  headless Chromium batches. Firefox/WebKit and visual screenshot gating remain
+  pending; GPU force parity self-skips without WebGPU hardware.
 
 ## Working-tree Update (v9.3.1 — 2026-10-07)
 

@@ -24,6 +24,9 @@ import {
 } from '../constants.js';
 import { runtimeConfig } from '../state/runtimeConfig.js';
 import { createGPUContext, gpuComputeForces } from '../physics/gpuCompute.js';
+import { SplitMix32 } from '../core/prng.js';
+
+const DEFAULT_WORKER_SEED = 0x51f15e;
 
 const hasSAB = typeof SharedArrayBuffer !== 'undefined';
 const isShared = (value) => hasSAB && value instanceof SharedArrayBuffer;
@@ -40,6 +43,7 @@ let dnaBuffer = null;        // SharedArrayBuffer for species DNA
 let dnaView = null;          // Uint16Array view over dnaBuffer
 let dt = 1.0; // worker time step
 let tickCount = 0;
+let prng = new SplitMix32(DEFAULT_WORKER_SEED);
 let hasSharedArrayBuffer = hasSAB;
 let gpuContext = null;
 let gpuReady = false;
@@ -139,6 +143,7 @@ async function handleInit(msg) {
   stride = PARTICLE_STRIDE;
   resetOffspringRing();
   tickCount = 0;
+  prng = new SplitMix32(DEFAULT_WORKER_SEED);
 
   // Apply initial config
   if (config) {
@@ -232,7 +237,7 @@ function applyConfig(config) {
   if (config.particleCount !== undefined) particleCount = config.particleCount;
   if (config.worldSize !== undefined) worldSize = config.worldSize;
   if (config.dt !== undefined) dt = config.dt;
-  if (config.seed !== undefined && tickCount === 0) _prngState = config.seed | 0;
+  if (config.seed !== undefined && tickCount === 0) prng = new SplitMix32(config.seed);
   if (config.stride !== undefined) stride = config.stride;
   if (config.worldParams) runtimeConfig.worldParams = config.worldParams;
   if (config.computeEngine === 'gpu' || config.computeEngine === 'cpu') {
@@ -403,22 +408,6 @@ function handleRestore(msg) {
     tickCount,
     lawState: serializeLawState(lawState),
   });
-}
-
-// ── PRNG for Worker ──
-
-// SplitMix32-style PRNG (deterministic, fast, no Math.random dependency)
-let _prngState = 0x51f15e;
-
-function prng() {
-  let z = (_prngState + 0x9e3779b9) | 0;
-  _prngState = z;
-  z = (z ^ (z >>> 16)) | 0;
-  z = Math.imul(z, 0x21f0aaad);
-  z = z ^ (z >>> 15);
-  z = Math.imul(z, 0x735a2d97);
-  z = z ^ (z >>> 15);
-  return (z >>> 0) / 4294967296;
 }
 
 // ── Main-Thread Fallback Mode ──

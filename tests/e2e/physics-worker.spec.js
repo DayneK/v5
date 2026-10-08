@@ -11,15 +11,28 @@ test('boots the simulation shell without a module error', async ({ page }) => {
 
 test('runs worker ticks asynchronously when SharedArrayBuffer is available', async ({ page }) => {
   await page.goto('/');
-  await expect.poll(() => page.evaluate(() => document.querySelector('#hud-tick')?.textContent || '')).toMatch(/\d[\d,]*\n\d+\.\d/);
+  // The launch modal gates the simulation — confirm it before expecting live
+  // ticks (the static HUD placeholder otherwise satisfies any regex).
+  const launch = page.locator('.launch-primary[data-act="launch"]');
+  await launch.waitFor({ state: 'visible', timeout: 20000 });
+  await launch.click();
+  const readTick = () => page.evaluate(() => {
+    const text = document.querySelector('#hud-tick')?.textContent || '';
+    const first = (text.split('\n')[0] || '').replace(/[^\d]/g, '');
+    return { text, tick: Number(first || 0), isolated: crossOriginIsolated };
+  });
+  await expect.poll(async () => (await readTick()).tick, { timeout: 30000 }).toBeGreaterThan(0);
+  const before = await readTick();
   const result = await page.evaluate(async () => {
     const started = performance.now();
     await new Promise((resolve) => setTimeout(resolve, 1200));
-    const text = document.querySelector('#hud-tick')?.textContent || '';
-    return { elapsed: performance.now() - started, text, isolated: crossOriginIsolated };
+    return performance.now() - started;
   });
-  expect(result.text).toMatch(/\d[\d,]*\n\d+\.\d/);
-  expect(result.elapsed).toBeGreaterThanOrEqual(1000);
+  const after = await readTick();
+  expect(after.text).toMatch(/\d[\d,]*\n\d+\.\d/);
+  expect(result).toBeGreaterThanOrEqual(1000);
+  expect(after.tick, 'tick counter must advance — static HUD text would not').toBeGreaterThan(before.tick);
+  test.info().annotations.push({ type: 'crossOriginIsolated', description: String(after.isolated) });
 });
 
 test('GPU force output matches CPU for a fixed browser fixture', async ({ page }) => {

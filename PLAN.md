@@ -1,12 +1,24 @@
 # Implementation Plan: VEPA4 — Integrated Intelligence
 
-**Date**: 2026-10-07 | **Status**: v9.3.0 deployed; v9.3.1 population/UI task is an uncommitted working-tree update | **Spec**: `SPEC.md`
+**Date**: 2026-10-08 | **Status**: v9.4.0 working-tree update (uncommitted) | **Spec**: `SPEC.md`
 
 > **Standards (2026-08-10):** product **VEPA4**, versions `major.minor.build`
-> (current `9.3.1`; legacy v4-line mapping old `4.M.N` → `M.N.0`), commits
+> (current `9.4.0`; legacy v4-line mapping old `4.M.N` → `M.N.0`), commits
 > Conventional Commits 1.0.0 — see `AGENTS.md` §10.4.
 
-## Current task — population ceiling and launch comparison controls (2026-10-07)
+## Current task — Easy Mode ControlProfile and RB approval gates (2026-10-08)
+
+- Recorded the six §6 approval-gate answers in `docs/spec/rb/DECISIONS.md` (owner/rationale/reversibility/evidence each) and implemented them:
+  - **D1 Easy Mode:** ControlProfile v1 — per-surface persisted EASY/ADVANCED toggles (EASY default), 5 world + 6 species composite recipes, preview → atomic apply, `customized` detection for mixed Advanced values; Advanced/saves untouched. 27 unit tests + 4 browser specs.
+  - **D2 Parameters:** evidence-gated additions — policy + record enforced by count-equation tests (baseline 149 world params / 64 DNA traits).
+  - **D3 Remote exec:** provider-neutral `ComputeSession` (local adapters offline by default, remote port with injected transport, no provider chosen) + provider survey for the future ADR.
+  - **D4 Solver:** gated approximation registry — registered + accepted + enabled, per-law tolerances, exact-by-default fallback, `cpu-exact` reference untouchable.
+  - **D5 Packaging:** single package + `src/moduleCatalog.js` (13 manifests, versioned ports) validated by `moduleRegistry` with automatic `src/` coverage.
+  - **D6 Browser QA:** `docs/spec/testing/browser-qa-matrix.md` (tiers/coverage/proposed screenshot tolerances) + Playwright against the managed preview via `VEPA_E2E_BASE_URL` — first run 8/8, P4 verification 11/11 across bounded Chromium runs; limitations recorded in the matrix.
+- **Approved decomposition P4 worktree update:** extracted worker transport (`src/workerBridge.js`), population lifecycle (`src/spawn/population.js`), and metrics/death/memory cadence (`src/intelligenceCadence.js`) behind injected contexts and same-call-site facades. Focused manager/cadence tests added. Work is uncommitted — Freebuff's Changes panel owns commits/pushes/tags.
+- **Verification:** `npm test` 146 files / 1,629 tests, syntax, production build, `repository:check` (including `spec:check`), and UI module report check all pass. Managed-workspace Playwright coverage passes 11/11 in bounded runs; the combined run exceeded the command time limit, and the first published-deployment run correctly exposed that production was still an older snapshot. Remaining browser limitations are recorded in `docs/spec/testing/browser-qa-matrix.md`.
+
+## Milestone note (v9.3.1 working tree — 2026-10-07)
 
 - Lowered the live application particle ceiling from 100,000 to 10,000, aligned WORLD and launch population controls, and retained benchmark reports as historical measurements.
 - Replaced each preset card's COMPARE label with a compact accessible ⇄ toggle; the comparison still supports up to three worlds.

@@ -289,7 +289,9 @@ export function applyPredation(p1Ptr, p2Ptr, stride, dx, dy, dz, dist, prng) {
     // Gene absorption on contact
     if (dist < r1 + r2 && predBias > 0.1) {
       const absorpRate = 0.05;
-      const roll = (prng && typeof prng === 'function') ? prng : Math.random;
+      // Standalone callers without an RNG use a fixed neutral roll; the
+      // simulation worker always supplies its canonical seeded PRNG.
+      const roll = (prng && typeof prng === 'function') ? prng : () => 0.5;
       for (let t = 0; t < 5; t++) {
         const trait = Math.floor(roll() * 42);
         const preyVal = buf[p2Ptr + S.DNA_CACHE_START + trait] || 0;
@@ -1446,7 +1448,9 @@ export function applyBoil(lawState, view, base, dt, synergy, prng) {
     // kinetic energy and costs latent heat (ENERGY), with a mass floor so
     // particles never boil away completely.
     view[base + S.MASS] = Math.max(0.02, mass - ejectMass);
-    const rnd = prng || Math.random;
+    // Standalone callers without an RNG remain deterministic; production
+    // simulation supplies the worker's canonical seeded PRNG.
+    const rnd = (typeof prng === 'function') ? prng : () => 0.5;
     view[base + S.VEL_X] += (rnd() - 0.5) * ejectMass * 10;
     view[base + S.VEL_Y] += (rnd() - 0.5) * ejectMass * 10;
     view[base + S.VEL_Z] += (rnd() - 0.5) * ejectMass * 5;

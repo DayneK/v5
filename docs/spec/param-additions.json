@@ -1,0 +1,9 @@
+{
+  "schema": "vepa-param-additions/v1",
+  "policy": "docs/spec/param-addition-policy.md",
+  "baseline": {
+    "worldParams": 149,
+    "dnaTraits": 64
+  },
+  "additions": []
+}

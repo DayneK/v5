@@ -1,5 +1,73 @@
-import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { describe, it, expect, vi } from 'vitest';
+import { LAW_INDEXES, PARTICLE_STRIDE, STRIDE_INDEXES as S } from '../../src/constants.js';
 import { createLawState, toggle, set, clear, isSet, getActiveCount, getStateVector, serialize, deserialize } from '../../src/state/lawState.js';
+import { applyBoil, applyPredation, setBuffer } from '../../src/physics/laws.js';
+
+describe('Simulation law randomness', () => {
+    it('keeps unseeded Math.random calls out of the physics law and worker boundary', () => {
+        const paths = [
+            new URL('../../src/physics/laws.js', import.meta.url),
+            new URL('../../src/worker/physics.worker.js', import.meta.url),
+        ];
+        for (const path of paths) {
+            expect(readFileSync(path, 'utf8')).not.toMatch(/\bMath\.random\s*\(/);
+        }
+    });
+
+    it('uses deterministic fallback rolls for predation when no PRNG is supplied', () => {
+        const random = vi.spyOn(Math, 'random').mockImplementation(() => {
+            throw new Error('simulation law used Math.random');
+        });
+        const run = () => {
+            const view = new Float32Array(PARTICLE_STRIDE * 2);
+            view[S.MASS] = 2;
+            view[S.SPECIES_ID] = 0;
+            view[S.RADIUS] = 1;
+            view[S.DNA_CACHE_START + 36] = 1;
+            view[PARTICLE_STRIDE + S.MASS] = 1;
+            view[PARTICLE_STRIDE + S.SPECIES_ID] = 1;
+            view[PARTICLE_STRIDE + S.RADIUS] = 1;
+            view[PARTICLE_STRIDE + S.DNA_CACHE_START + 21] = 1;
+            setBuffer(view);
+            applyPredation(0, PARTICLE_STRIDE, PARTICLE_STRIDE, 1, 0, 0, 1, undefined);
+            return Array.from(view);
+        };
+
+        try {
+            const result = run();
+            expect(result).toEqual(run());
+            expect(result[S.DNA_CACHE_START + 21]).toBeCloseTo(0.2262190625, 6);
+            expect(result[S.DNA_CACHE_START + 7]).toBe(0);
+            expect(random).not.toHaveBeenCalled();
+        } finally {
+            random.mockRestore();
+        }
+    });
+
+    it('uses a deterministic fallback for boil when no PRNG is supplied', () => {
+        const random = vi.spyOn(Math, 'random').mockImplementation(() => {
+            throw new Error('simulation law used Math.random');
+        });
+        const run = () => {
+            const view = new Float32Array(PARTICLE_STRIDE);
+            view[S.MASS] = 10;
+            view[S.ENERGY] = 100;
+            view[S.TEMPERATURE] = 1;
+            const laws = createLawState();
+            set(laws, LAW_INDEXES.BOIL);
+            applyBoil(laws, view, 0, 1, 1, undefined);
+            return Array.from(view);
+        };
+
+        try {
+            expect(run()).toEqual(run());
+            expect(random).not.toHaveBeenCalled();
+        } finally {
+            random.mockRestore();
+        }
+    });
+});
 
 describe('LawState', () => {
     it('starts with all laws off', () => {

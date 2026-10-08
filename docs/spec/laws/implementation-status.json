@@ -9,6 +9,7 @@
       "category": "physics",
       "status": "wired",
       "implementationFiles": [
+        "src/physics/approximations.js",
         "src/physics/laws.js",
         "src/physics/solver.js",
         "src/physics/synergy.js",
@@ -24,9 +25,13 @@
         "tests/audit/params_batch_08.test.js",
         "tests/audit/params_batch_09.test.js",
         "tests/audit/params_batch_10.test.js",
+        "tests/e2e/control-profile.spec.js",
+        "tests/unit/approximationRegistry.test.js",
         "tests/unit/auditSignoff.test.js",
         "tests/unit/codex.test.js",
         "tests/unit/computeEngines.test.js",
+        "tests/unit/engines.test.js",
+        "tests/unit/launchModal.test.js",
         "tests/unit/lawGating.test.js",
         "tests/unit/lawGraph.test.js",
         "tests/unit/multiplex.test.js",
@@ -62,6 +67,7 @@
         "tests/audit/params_batch_04.test.js",
         "tests/audit/params_batch_08.test.js",
         "tests/audit/params_batch_10.test.js",
+        "tests/unit/approximationRegistry.test.js",
         "tests/unit/lawGating.test.js",
         "tests/unit/lawGraph.test.js",
         "tests/unit/tidalBloom.test.js"
@@ -128,6 +134,7 @@
         "tests/audit/params_batch_17.test.js",
         "tests/audit/params_batch_18.test.js",
         "tests/unit/fields.test.js",
+        "tests/unit/lawCategories.test.js",
         "tests/unit/lawGating.test.js"
       ],
       "relationshipTypes": [],
@@ -184,6 +191,7 @@
       "category": "physics",
       "status": "wired",
       "implementationFiles": [
+        "src/physics/approximations.js",
         "src/physics/interactionSpace.js",
         "src/physics/lawgroups/mechanicsHelp.js",
         "src/physics/laws.js",
@@ -197,6 +205,7 @@
       "testFiles": [
         "tests/audit/batch_02.test.js",
         "tests/audit/params_batch_11.test.js",
+        "tests/unit/approximationRegistry.test.js",
         "tests/unit/interactionSpace.test.js",
         "tests/unit/synergyCache.test.js"
       ],
@@ -216,6 +225,7 @@
       "category": "physics",
       "status": "wired",
       "implementationFiles": [
+        "src/physics/approximations.js",
         "src/physics/gpuCompute.js",
         "src/physics/lawgroups/mechanicsHelp.js",
         "src/physics/laws.js",
@@ -227,6 +237,7 @@
       ],
       "testFiles": [
         "tests/audit/batch_02.test.js",
+        "tests/unit/approximationRegistry.test.js",
         "tests/unit/codex.test.js",
         "tests/unit/lawGraph.test.js",
         "tests/unit/physics.test.js",
@@ -477,12 +488,14 @@
         "tests/unit/fields.test.js",
         "tests/unit/groupRegistry.test.js",
         "tests/unit/infrastructure.test.js",
+        "tests/unit/intelligenceCadence.test.js",
         "tests/unit/lawCategories.test.js",
         "tests/unit/lawGating.test.js",
         "tests/unit/lawgroupsBiologyChemistry.test.js",
         "tests/unit/lawgroupsEmInfoMeta.test.js",
         "tests/unit/lawgroupsPhysicsThermo.test.js",
         "tests/unit/lawgroupsQuantum.test.js",
+        "tests/unit/laws.test.js",
         "tests/unit/livingWorld.test.js",
         "tests/unit/multiplex.test.js",
         "tests/unit/quantumMacro.test.js",
@@ -1035,6 +1048,7 @@
       "testFiles": [
         "tests/audit/batch_10.test.js",
         "tests/unit/codex.test.js",
+        "tests/unit/launchModal.test.js",
         "tests/unit/synergyCache.test.js"
       ],
       "relationshipTypes": [],
@@ -1098,6 +1112,7 @@
         "tests/unit/groupRegistry.test.js",
         "tests/unit/interactionSpace.test.js",
         "tests/unit/mechanics.test.js",
+        "tests/unit/populationManager.test.js",
         "tests/unit/relationshipCompatibility.test.js",
         "tests/unit/relationshipExplorer.test.js",
         "tests/unit/worldSave.test.js"
@@ -1185,7 +1200,8 @@
         "src/physics/solver.js"
       ],
       "testFiles": [
-        "tests/audit/batch_11.test.js"
+        "tests/audit/batch_11.test.js",
+        "tests/unit/laws.test.js"
       ],
       "relationshipTypes": [],
       "relationshipMetadataComplete": false,
@@ -1672,7 +1688,8 @@
         "src/physics/lawgroups/quantumLaws.js",
         "src/physics/laws.js",
         "src/physics/solver.js",
-        "src/physics/synergy.js"
+        "src/physics/synergy.js",
+        "src/spawn/population.js"
       ],
       "solverGateFiles": [
         "src/physics/solver.js"
@@ -1879,6 +1896,7 @@
       ],
       "testFiles": [
         "tests/audit/batch_19.test.js",
+        "tests/unit/civilizationSequelWiring.test.js",
         "tests/unit/codex.test.js",
         "tests/unit/dataPanels.test.js",
         "tests/unit/synergyCache.test.js"
@@ -2192,7 +2210,8 @@
         "tests/unit/deadLawToggles.test.js",
         "tests/unit/fields.test.js",
         "tests/unit/launchModal.test.js",
-        "tests/unit/lawCategories.test.js"
+        "tests/unit/lawCategories.test.js",
+        "tests/unit/paramAdditionPolicy.test.js"
       ],
       "relationshipTypes": [],
       "relationshipMetadataComplete": false,
@@ -2974,7 +2993,8 @@
       ],
       "testFiles": [
         "tests/audit/batch_32.test.js",
-        "tests/unit/exoticMatter.test.js"
+        "tests/unit/exoticMatter.test.js",
+        "tests/unit/launchModal.test.js"
       ],
       "relationshipTypes": [],
       "relationshipMetadataComplete": false,
@@ -3000,6 +3020,7 @@
         "tests/e2e/runtime-acceptance.spec.js",
         "tests/unit/auditSignoff.test.js",
         "tests/unit/backendArchitecture.test.js",
+        "tests/unit/lawGrid.test.js",
         "tests/unit/mechanicsArchitecture.test.js",
         "tests/unit/provenance.test.js"
       ],
@@ -3029,7 +3050,8 @@
         "tests/audit/batch_02.test.js",
         "tests/audit/batch_22.test.js",
         "tests/audit/params_batch_11.test.js",
-        "tests/unit/backendArchitecture.test.js"
+        "tests/unit/backendArchitecture.test.js",
+        "tests/unit/lawGrid.test.js"
       ],
       "relationshipTypes": [
         "synergizesWith",
@@ -3058,7 +3080,10 @@
         "tests/audit/batch_01.test.js",
         "tests/audit/params_batch_09.test.js",
         "tests/unit/backendArchitecture.test.js",
+        "tests/unit/lawCategories.test.js",
+        "tests/unit/lawGrid.test.js",
         "tests/unit/mechanics.test.js",
+        "tests/unit/worldSave.test.js",
         "tests/unit/wrapLaw.test.js"
       ],
       "relationshipTypes": [
