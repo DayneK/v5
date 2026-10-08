@@ -9,6 +9,7 @@ import { WORLD_PARAM_DEFS } from '../state/worldParams.js';
 import { runtimeConfig } from '../state/runtimeConfig.js';
 import { createSliderRow } from './sliderControl.js';
 import { MECHANICS_ICONS } from './mechanicsIcons.js';
+import { mountWorldControlProfile } from './controlProfileView.js';
 
 // Law icon symbols (matching v2 aesthetic)
 const LAW_ICONS = {
@@ -191,6 +192,11 @@ export function createWorldPanel(bus, lawStateObj) {
   if (params) {
     renderWorldSliders(params, bus);
   }
+
+  // ── Easy Mode ControlProfile (RB): EASY | ADVANCED toggle + composite
+  //    recipe sliders. Advanced remains the full panel — nothing is hidden
+  //    from saves or from this view when the user switches back.
+  mountWorldControlProfile(bus, () => renderWorldSliders(params, bus));
 
   // ── Listen for law sync ──
   bus.on('law:sync', () => renderLawGrid(grid, lawStateObj, bus));

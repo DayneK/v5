@@ -12,6 +12,10 @@
  * Emit:           narrative:entry  { voice, text, timestamp }
  */
 
+import { SplitMix32 } from '../core/prng.js';
+
+const DEFAULT_NARRATIVE_SEED = 0x4e415252;
+
 const VOICES = {
   stabilizer:  { name: 'Stabilizer',  color: '#4488ff', key: 'stabilizer'  },
   diverger:    { name: 'Diverger',    color: '#ff4444', key: 'diverger'    },
@@ -122,11 +126,17 @@ const TEMPLATES = {
  * @returns {object} Engine handle.
  */
 export function createNarrativeEngine(bus, config = {}) {
-  const cfg = { ...DEFAULTS, ...config };
+  const { rng, seed = DEFAULT_NARRATIVE_SEED, ...options } = config;
+  const cfg = { ...DEFAULTS, ...options };
+  const prng = new SplitMix32(seed);
 
+  const seededRng = () => engine.prng.next();
   const engine = {
     bus,
     cfg,
+    prng,
+    rng: typeof rng === 'function' ? rng : seededRng,
+    _seededRng: seededRng,
     lastFrame: {},          // voiceKey -> last frame a narration was emitted
     lastEmit: 0,            // last frame ANY narration was emitted (global pace)
     frame: 0,
@@ -155,6 +165,17 @@ export function createNarrativeEngine(bus, config = {}) {
   });
 
   return engine;
+}
+
+/** Reset narrative pacing and seeded randomness for a restarted world. */
+export function resetNarrativeEngine(engine, seed = DEFAULT_NARRATIVE_SEED) {
+  if (!engine) return;
+  engine.prng = new SplitMix32(seed);
+  if (engine.rng === engine._seededRng) engine.rng = () => engine.prng.next();
+  engine.frame = 0;
+  engine.lastEmit = 0;
+  engine.lastFrame = {};
+  engine.recentEvents.length = 0;
 }
 
 /* ------------------------------------------------------------------ */
@@ -201,8 +222,8 @@ function pushEvent(engine, type, data) {
 
 function emitNarrative(engine, evt) {
   const voiceKeys = Object.keys(VOICES);
-  // Pick a random voice (could be weighted in future)
-  const voiceKey = voiceKeys[Math.floor(Math.random() * voiceKeys.length)];
+  // Pick a deterministic voice (could be weighted in future).
+  const voiceKey = voiceKeys[Math.floor(engine.rng() * voiceKeys.length)];
 
   // Cooldown check
   const last = engine.lastFrame[voiceKey] || 0;
@@ -211,7 +232,7 @@ function emitNarrative(engine, evt) {
   const pool = TEMPLATES[evt.type] && TEMPLATES[evt.type][voiceKey];
   if (!pool || pool.length === 0) return false;
 
-  const pick = pool[Math.floor(Math.random() * pool.length)];
+  const pick = pool[Math.floor(engine.rng() * pool.length)];
   const text = pick(evt.data);
   const voice = VOICES[voiceKey];
 

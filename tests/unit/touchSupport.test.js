@@ -101,7 +101,7 @@ describe('touch-first interaction contract', () => {
   it('a pressable surface uses manipulation unless it is a drag surface', () => {
     // `manipulation` keeps scroll available but gives the tap back to us.
     // `none` is only correct where the gesture is a drag.
-    const draggish = /range|resize|shard-canvas|\.tabs$|sc-input|dna-input|slider-thumb/;
+    const draggish = /range|resize|shard-canvas|\.tabs$|sc-input|dna-input|easy-slider|slider-thumb/;
     const wrong = POINTER
       .map((sel) => [sel, touchActionFor(sel)])
       .filter(([sel, value]) => value === 'none' && !draggish.test(sel));

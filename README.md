@@ -5,18 +5,35 @@
 ## Versioning & Commits
 
 - **Product:** **VEPA4**; versions use **`major.minor.build`** (npm-semver-native) —
-  current: **9.3.1** (legacy label `4.9.34`). Retroactive mapping of the v4 line:
+  current: **9.4.0** (legacy label `4.9.35`). Retroactive mapping of the v4 line:
   old `4.M.N` → `M.N.0`; see `CHANGELOG.md` and `AGENTS.md` §10.4.
 - **Commits:** [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/)
   — `<type>(<scope>): <description>`, release commits `chore(release): v7.0.0`,
   tags `v7.0.0`.
 
-VEPA4 is the next major version of the emergent physics simulation. It forks
-the v3 modular recreation and completes the integration gap identified in the
-2026-08-01 workspace audit: the five intelligence engines (Insight, Narrative,
+VEPA4 is the next major version of the emergent physics simulation. The
+main-thread orchestrator delegates worker transport, population lifecycle, and
+intelligence cadence to injected modules in `src/workerBridge.js`,
+`src/spawn/population.js`, and `src/intelligenceCadence.js`; it continues to own
+boot and engine ordering. It forks the v3 modular recreation and completes the
+integration gap identified in the 2026-08-01 workspace audit: the five intelligence engines (Insight, Narrative,
 Lineage, Goal, Timeline) are now wired into the simulation loop, the
 communication DNA group drives real physics, and predation is restored as an
 explicit law.
+
+## Orchestration boundaries
+
+The main-thread orchestrator delegates worker transport to `src/workerBridge.js`,
+population lifecycle to `src/spawn/population.js`, and cached metrics/death
+scans/culture cadence to `src/intelligenceCadence.js`. These modules use live
+injected contexts; `main.js` retains boot order and same-call-site facades. P4
+verification passed the full unit/repository/build gates and 11/11 Chromium
+e2e checks against the managed workspace preview; browser/platform limitations
+are tracked in `docs/spec/testing/browser-qa-matrix.md`.
+
+## Reproducibility and random behavior
+
+Simulation randomness is driven by the launch seed and the shared `SplitMix32` generator across spawning, worker solver laws, speciation, narrative selection, and main-thread chaos actions. Restart reseeds these streams from the selected launch seed. Render-only chaos scanline texture and generated accessibility tab IDs use deterministic/non-random calculations; they do not introduce ambient randomness into simulation behavior. This supports reproducible seeded runs, but exact world continuation after save/restore still depends on persisted PRNG and subsystem cadence state and is not claimed by this update.
 
 ## Systems implementation substrate
 
@@ -32,6 +49,8 @@ npm test       # Vitest unit + audit suite (see current pass/fail output)
 npm run spec:generate # Generate the hierarchical docs/spec tree
 npm run spec:check    # Fail when generated specifications drift
 npm run systems:bundle # Regenerate the hierarchical concatenated systems atlas
+npx playwright test   # Browser e2e (own dev-server fallback)
+VEPA_E2E_BASE_URL=<url> npx playwright test   # against a running managed preview
 ```
 
 ## Deployments
@@ -47,8 +66,8 @@ npm run systems:bundle # Regenerate the hierarchical concatenated systems atlas
 
 Deployment URLs are snapshots, not separate product versions, and may not be built from the same commit:
 
-- **Canonical source:** this repository root, currently VEPA4 **9.3.0**.
-- **Current production target:** `https://v5.freebuff.app/`.
+- **Canonical source:** this repository root, currently VEPA4 **9.4.0**; working-tree changes are not yet a tagged release.
+- **Current production target:** `https://v5.freebuff.app/` (deployment parity with this working tree is not verified).
 - **`vepa-seven.vercel.app`:** a later, feature-rich historical deployment
   associated with the v8.16-era line. It is useful for comparison and recovery,
   but it is not runtime or release authority.
@@ -89,6 +108,14 @@ global command with `rm /data/data/com.termux/files/usr/bin/vepa4`.
 ## Current capabilities and historical additions
 
 The original v4 features remain part of the product, while the later v8/v9 additions below document capabilities added after the initial integrated-intelligence release. Some expensive systems run on controlled cadences rather than every render tick, and some features are optional or configuration-gated.
+
+- **Easy Mode (ControlProfile)** — WORLD and SPECIES surfaces default to a
+  beginner **EASY** view of composite recipe sliders (5 world + 6 species
+  recipes) with live before/after previews and one atomic apply per gesture;
+  **ADVANCED** keeps the complete parameter and DNA panels. Modes persist per
+  surface (`vepa.controlModes.v1`), mixed Advanced values are flagged as
+  `customized`, and recipes never hide data from saves. See
+  `docs/spec/rb/DECISIONS.md` (D1) and `src/state/controlProfile.js`.
 
 - **Intelligence engines live** — cluster detection, multi-voice narrative,
   lineage genealogy, goal self-tuning, and timeline record/scrub are wired into
@@ -241,4 +268,8 @@ choice persists.
 - `SPEC.md` — feature specification for v4
 - `PLAN.md` — implementation plan
 - `CHANGELOG.md` — version history
+- `docs/spec/rb/DECISIONS.md` — RB approval-gate decision record (D1–D6)
+- `docs/spec/testing/browser-qa-matrix.md` — browser QA matrix + run results
+- `docs/spec/param-addition-policy.md` — evidence gate for new parameters
+- `docs/spec/execution/provider-options.md` — remote-compute provider survey (no provider chosen)
 - `../audit/FULL_AUDIT_2026-08-01.md` — the audit that scoped this release

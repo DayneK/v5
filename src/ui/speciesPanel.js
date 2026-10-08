@@ -6,6 +6,7 @@
 import { MAX_SPECIES, DNA_META, DNA_RANGES, DNA_INDEXES, DNA_COUNT } from '../constants.js';
 import { getSpeciesDNA, setSpeciesDNA, setDNAFloat, getDNAFloat } from '../dna/dnaBuffer.js';
 import { createSliderRow } from './sliderControl.js';
+import { mountSpeciesControlProfile } from './controlProfileView.js';
 
 const SPECIES_COLORS = ['#ff5050', '#ffc832', '#50ff78', '#78a0ff', '#643c8c'];
 const SPECIES_NAMES = ['Predator', 'Sol', 'Life', 'Aether', 'Void'];
@@ -77,6 +78,10 @@ export function createSpeciesPanel(bus, dnaBuffer) {
   }
 
   // Stay in sync with restarts (roster resets to the default 5)
+  // ── Easy Mode ControlProfile (RB): EASY | ADVANCED toggle + recipe
+  //    sliders for the selected species. Advanced stays the full accordion.
+  mountSpeciesControlProfile(bus, () => renderAccordion(accordion, dnaBuffer, bus));
+
   bus.on('species:sync', ({ count }) => {
     speciesCount = Math.max(1, Math.min(count || 5, MAX_SPECIES));
     selectedSpecies = Math.min(selectedSpecies, speciesCount - 1);
@@ -199,6 +204,10 @@ function removeLastSpecies(dnaBuffer, bus, list, accordion) {
 
 function renderAccordion(container, dnaBuffer, bus) {
   if (!container) return;
+  // Re-render is the single choke point where the selection may have moved —
+  // tell the Easy Mode surface which species it should be projecting.
+  const notifyBus = bus || window.__bus;
+  if (notifyBus) notifyBus.emit('species:selected', { species: selectedSpecies });
   let html = '';
   ACCORDION_GROUPS.forEach((group, gi) => {
     html += `<div class="accordion-section${group.name === 'BASIC' ? ' open' : ''}">`;

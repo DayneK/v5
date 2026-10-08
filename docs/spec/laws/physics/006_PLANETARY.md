@@ -26,11 +26,11 @@
 
 ## Implementation evidence
 
-[src/physics/gpuCompute.js](src/physics/gpuCompute.js), [src/physics/lawgroups/mechanicsHelp.js](src/physics/lawgroups/mechanicsHelp.js), [src/physics/laws.js](src/physics/laws.js), [src/physics/solver.js](src/physics/solver.js), [src/physics/synergy.js](src/physics/synergy.js)
+[src/physics/approximations.js](src/physics/approximations.js), [src/physics/gpuCompute.js](src/physics/gpuCompute.js), [src/physics/lawgroups/mechanicsHelp.js](src/physics/lawgroups/mechanicsHelp.js), [src/physics/laws.js](src/physics/laws.js), [src/physics/solver.js](src/physics/solver.js), [src/physics/synergy.js](src/physics/synergy.js)
 
 ## Verification evidence
 
-- Tests: [tests/audit/batch_02.test.js](tests/audit/batch_02.test.js), [tests/unit/codex.test.js](tests/unit/codex.test.js), [tests/unit/lawGraph.test.js](tests/unit/lawGraph.test.js), [tests/unit/physics.test.js](tests/unit/physics.test.js), [tests/unit/synergyCache.test.js](tests/unit/synergyCache.test.js)
+- Tests: [tests/audit/batch_02.test.js](tests/audit/batch_02.test.js), [tests/unit/approximationRegistry.test.js](tests/unit/approximationRegistry.test.js), [tests/unit/codex.test.js](tests/unit/codex.test.js), [tests/unit/lawGraph.test.js](tests/unit/lawGraph.test.js), [tests/unit/physics.test.js](tests/unit/physics.test.js), [tests/unit/synergyCache.test.js](tests/unit/synergyCache.test.js)
 - Audits: [docs/audit/laws/a3/all_category_docs.md](docs/audit/laws/a3/all_category_docs.md), [docs/audit/laws/a3/all_stage_1.md](docs/audit/laws/a3/all_stage_1.md), [docs/audit/laws/a3/all_stage_2.md](docs/audit/laws/a3/all_stage_2.md), [docs/audit/laws/a3/all_stage_3.md](docs/audit/laws/a3/all_stage_3.md), [docs/audit/laws/a3/audit_progress.md](docs/audit/laws/a3/audit_progress.md), [docs/audit/laws/a3/mega_law_audit_ensemble.md](docs/audit/laws/a3/mega_law_audit_ensemble.md), [docs/audit/laws/a3/physics.md](docs/audit/laws/a3/physics.md), [docs/audit/laws/a3/stage-1/06_PLANETARY.md](docs/audit/laws/a3/stage-1/06_PLANETARY.md), [docs/audit/laws/a3/stage-2/06_PLANETARY.md](docs/audit/laws/a3/stage-2/06_PLANETARY.md), [docs/audit/laws/a3/stage-3/06_PLANETARY.md](docs/audit/laws/a3/stage-3/06_PLANETARY.md)
 
 ## Interpretation boundary

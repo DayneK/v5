@@ -4,10 +4,13 @@
  */
 import { initDebug, logDebug, isDebugVisible, updateLiveStats } from './debug.js';
 import { EventBus } from './core/eventBus.js';
+import { createWorkerBridge } from './workerBridge.js';
+import { createPopulationManager } from './spawn/population.js';
+import { createIntelligenceCadence, METRICS_CADENCE, LINEAGE_CADENCE } from './intelligenceCadence.js';
 import { SplitMix32 as PRNG } from './core/prng.js';
 import { WORLD_SIZE, PARTICLE_STRIDE, MAX_PARTICLES, MAX_SPECIES, DEFAULT_PARTICLES_PER_SPECIES, STRIDE_INDEXES, DNA_INDEXES, DNA_RANGES, LAW_INDEXES, LAW_COUNT, LAW_CATEGORIES } from './constants.js';
 import { createParticleBuffer, setX, setY, setVelocity, setMass, setSpeciesId, setEnergy } from './state/particleBuffer.js';
-import { createLawState, set as lawSet, clear as lawClear, serialize as serializeLawState, getActiveCount as getLawCount } from './state/lawState.js';
+import { createLawState, set as lawSet, clear as lawClear, getActiveCount as getLawCount } from './state/lawState.js';
 import { runtimeConfig } from './state/runtimeConfig.js';
 import { createWorldParams, applyWorldParam, spawnCaps, syncWrapLaw, syncToroidalParam } from './state/worldParams.js';
 import { sampleSpawnPosition, buildSpawnCentres, initialPopulationTarget, perSpeciesAllocation } from './spawn/distribution.js';
@@ -17,14 +20,14 @@ import { createRendererAsync, resize as resizeRenderer, paintBackground } from '
 import { syncSprites } from './render/spriteSync.js';
 import { initUI } from './ui/ui.js';
 import { initCamera, resetCamera, setWorldSize } from './ui/camera.js';
-import { solve as solveMain, resetOffspringRing, drainOffspring as drainSolverOffspring } from './physics/solver.js';
+import { resetOffspringRing } from './physics/solver.js';
 import { createInsightEngine, updateInsight } from './engines/insightEngine.js';
 import { createSpeciationEngine, updateSpeciation } from './engines/speciation.js';
 import { createEcoEngine } from './engines/ecoEngine.js';
 import { createWorldEventEngine } from './engines/worldEvents.js';
 import { createEpochEngine, updateEpoch, getEpochs, getEpochSnapshot, resetEpoch } from './engines/epochEngine.js';
-import { createNarrativeEngine, updateNarrative } from './engines/narrativeEngine.js';
-import { createLineageTracker, trackBirth, trackDeath } from './engines/lineageTracker.js';
+import { createNarrativeEngine, updateNarrative, resetNarrativeEngine } from './engines/narrativeEngine.js';
+import { createLineageTracker, trackBirth } from './engines/lineageTracker.js';
 import { createGoalEngine, setGoalValue, updateGoal } from './engines/goalEngine.js';
 import { createTimelineEngine, snapshot as timelineSnapshot, getTimeline as getTimelineList, clearTimeline as clearTimelineEngine, scrub as timelineScrub } from './engines/timelineEngine.js';
 import { createGroupRegistry, updateGroups, groupCount, declareGroup } from './state/groupRegistry.js';
@@ -38,7 +41,7 @@ import {
     defaultLaunchSettings,
     LAUNCH_FIELDS,
 } from './state/launchSettings.js';
-import { createMemoryBuffers, speciesMemory, groupMemory, blendMemory, adaptMemory, decayMemory, pruneGroupMemory, resetMemoryBuffers, MEM } from './state/memoryBuffers.js';
+import { createMemoryBuffers, speciesMemory, groupMemory, blendMemory, decayMemory, pruneGroupMemory, resetMemoryBuffers, MEM } from './state/memoryBuffers.js';
 import { createAgencyEngine, updateAgency, detectMilestones, resetAgency } from './engines/agencyEngine.js';
 import { computeSpeciesGoals, applyGoalNudges } from './engines/goalBehavior.js';
 import { applyConstructions } from './state/construction.js';
@@ -128,24 +131,13 @@ let structures = null;
 let continuity = null;
 // The codex speaks only from continuity evidence, never from law state.
 let codex = null;
-// Physics worker bridge. SharedArrayBuffer lets the worker mutate the same
-// particle memory without copying; browsers without cross-origin isolation
-// keep the safe main-thread path instead of paying a per-tick transfer cost.
-let physicsWorker = null;
-let workerReady = false;
-let workerPending = false;
-let workerBusy = false;
-let workerFailed = false;
-let workerTickSentAt = 0;
-let _workerTickInFlight = false;
-let _workerOffspring = [];
+// Physics worker bridge state moved to src/workerBridge.js (DECOMPOSITION_PLAN
+// P4 step 1); main.js keeps the facade wrappers declared above boot().
 let agencyEngine = null; // Set H.1 — narrative actor + world milestones
 let speciesGoals = new Map(); // Set H.2 — per-species goal nudges
 let seenMilestones = new Set(); // Set H.3 — once-only world milestones
-let prevDead = new Uint8Array(0);
 let timelineRecording = false;
 const TIMELINE_SNAPSHOT_INTERVAL = 150;
-const METRICS_CADENCE = 8;   // full particle metric scan (computeMetrics)
 const SOCIAL_CADENCE = 4;    // economy/governance/infrastructure/artifacts
 // Civilization ontology bounds — the lifecycle substrate caps records at 2048
 // by default, but culture/federation/polity should never approach that.
@@ -161,10 +153,8 @@ const CULTURE_ALLIANCE_FIDELITY = 0.45;
 const MAX_STRUCTURES = 96;
 const STRUCTURE_UPKEEP_RATIO = 0.35;  // share of groups that can afford upkeep
 const STRUCTURE_MAINTENANCE_INTERVAL = 8;
-const LINEAGE_CADENCE = 4;   // death-transition scan
-let _cachedMetrics = null;
-let _metricsTick = -1;
 let particleCount = 0, speciesCount = 5, tick = 0, paused = false;
+let intelligenceCadence = null;
 let multiplexController = null;
 let worldSize = WORLD_SIZE;
 let worldParams = createWorldParams();
@@ -245,12 +235,8 @@ async function resolveLaunchConfiguration() {
     }
     const settings = normaliseLaunchSettings(choice || remembered);
     launchSettings = settings;
-    if (settings.launchSeed !== null) {
-        prng = new PRNG(settings.launchSeed);
-        WORKER_SEED = settings.launchSeed;
-    } else {
-        WORKER_SEED = Date.now() | 0;
-    }
+    WORKER_SEED = settings.launchSeed !== null ? settings.launchSeed : (Date.now() | 0);
+    prng = new PRNG(WORKER_SEED);
     if (choice) writeLaunchSettings(settings);
 
     ACTIVE_PRESET = presetFor(settings);
@@ -286,46 +272,40 @@ const LEGACY_WORLD_PARAM_KEYS = Object.freeze({
 
 function rng() { return prng.next(); }
 
-function canUsePhysicsWorker() {
-    return typeof Worker !== 'undefined' && typeof SharedArrayBuffer !== 'undefined'
-        && particleBuffer instanceof SharedArrayBuffer;
-}
+/**
+ * Physics worker bridge facade (DECOMPOSITION_PLAN P4, step 1).
+ *
+ * The transport — worker lifecycle, CONFIG/TICK queueing and the serialized
+ * in-flight tick — lives in `src/workerBridge.js`. main.js keeps thin
+ * wrappers with the exact names every call site already uses, plus the
+ * main-thread consequences of a completed tick (population, intelligence,
+ * HUD).
+ */
+const workerBridge = createWorkerBridge({
+    dt: DT,
+    get particleBuffer() { return particleBuffer; },
+    get particleCount() { return particleCount; },
+    get worldSize() { return worldSize; },
+    get lawState() { return lawState; },
+    get dnaBuffer() { return dnaBuffer; },
+    get seed() { return WORKER_SEED; },
+    onStopped() {
+        if (intelligenceCadence) intelligenceCadence.invalidateMetrics();
+    },
+    onTickComplete(tickStart, message) {
+        handleWorkerTick(tickStart, message);
+    },
+    emit(type, payload) {
+        bus.emit(type, payload);
+    },
+});
 
 function stopPhysicsWorker() {
-    if (physicsWorker) physicsWorker.terminate();
-    physicsWorker = null;
-    workerReady = false;
-    workerPending = false;
-    workerBusy = false;
-    _workerTickInFlight = false;
-    _workerOffspring.length = 0;
-    _cachedMetrics = null;
-    _metricsTick = -1;
+    workerBridge.stop();
 }
 
-function workerConfig() {
-    return {
-        particleCount,
-        worldSize,
-        stride: PARTICLE_STRIDE,
-        dt: DT * runtimeConfig.simSpeed,
-        seed: WORKER_SEED,
-        worldParams: { ...(runtimeConfig.worldParams || {}) },
-        computeEngine: runtimeConfig.computeEngine,
-        lawState: serializeLawState(lawState),
-    };
-}
-
-function syncPhysicsWorker() {
-    if (!physicsWorker || !workerReady || workerFailed) return;
-    // DNA is a regular Uint16Array (the particle buffer is the large SAB), so
-    // include a fresh structured-clone on edits; otherwise the worker would
-    // keep simulating the boot-time genome forever.
-    physicsWorker.postMessage({
-        type: 'CONFIG',
-        config: workerConfig(),
-        dnaBuffer: dnaBuffer ? dnaBuffer.buffer : undefined,
-    });
+function syncPhysicsWorker(payload) {
+    workerBridge.sync(payload);
 }
 
 function finishPhysicsTick(tickStart, offspring = null) {
@@ -349,10 +329,7 @@ function finishPhysicsTick(tickStart, offspring = null) {
     bus.emit('physics:tick', { tick, buffer: particleBuffer, particleCount, speciesCount });
 }
 
-function handleWorkerTick(message) {
-    workerBusy = false;
-    _workerTickInFlight = false;
-    const tickStart = workerTickSentAt || performance.now();
+function handleWorkerTick(tickStart, message) {
     const offspring = Array.isArray(message.offspring) ? message.offspring : [];
     // The worker owns the authoritative tick counter while it drives the
     // solver — adopt its tickCount so the HUD does not show a frozen TICK 0.
@@ -361,91 +338,15 @@ function handleWorkerTick(message) {
 }
 
 function solve(...args) {
-    if (physicsWorker && workerReady && !workerFailed) {
-        // The worker owns the solver; queue one serialized tick and return.
-        // The authoritative tick counter arrives via TICK_COMPLETE.
-        if (!workerBusy) {
-            workerBusy = true;
-            _workerTickInFlight = true;
-            workerTickSentAt = performance.now();
-            physicsWorker.postMessage({
-                type: 'TICK',
-                particleCount: args[1],
-                dt: args[6] || DT,
-            });
-        }
-        return false;
-    }
-    solveMain(...args);
-    return true;
+    return workerBridge.solve(...args);
 }
 
 function drainOffspring() {
-    const local = drainSolverOffspring();
-    if (_workerOffspring.length) return local.concat(_workerOffspring.splice(0));
-    return local;
+    return workerBridge.drain();
 }
 
 function startPhysicsWorker() {
-    stopPhysicsWorker();
-    workerFailed = false;
-    if (!canUsePhysicsWorker()) return false;
-    try {
-        physicsWorker = new Worker(new URL('./worker/physics.worker.js', import.meta.url), { type: 'module' });
-        workerPending = true;
-        physicsWorker.onmessage = (event) => {
-            const message = event.data || {};
-            if (message.type === 'WORKER_READY') return;
-            if (message.type === 'INIT_COMPLETE') {
-                workerReady = true;
-                workerPending = false;
-                logDebug('physics worker ready (SharedArrayBuffer, deterministic solver)');
-                return;
-            }
-            if (message.type === 'TICK_COMPLETE') {
-                handleWorkerTick(message);
-                bus.emit('physics:backend', {
-                    engine: message.gpuActive ? 'webgpu' : 'cpu',
-                    available: !!message.gpuAvailable,
-                    tick: message.tickCount,
-                });
-                return;
-            }
-            if (message.type === 'GPU_FALLBACK') {
-                logDebug('WebGPU fallback to reference CPU: ' + (message.error || message.reason || 'unknown'), 'warn');
-                bus.emit('physics:backend', {
-                    engine: 'cpu',
-                    available: false,
-                    reason: message.reason || 'gpu-fallback',
-                });
-                return;
-            }
-            if (message.type === 'ERROR') {
-                logDebug('physics worker error: ' + message.error, 'error');
-                workerFailed = true;
-                stopPhysicsWorker();
-                return;
-            }
-        };
-        physicsWorker.onerror = (error) => {
-            logDebug('physics worker unavailable: ' + (error.message || 'unknown error'), 'warn');
-            workerFailed = true;
-            stopPhysicsWorker();
-        };
-        physicsWorker.postMessage({
-            type: 'INIT',
-            buffer: particleBuffer,
-            count: particleCount,
-            dnaBuffer: dnaBuffer.buffer,
-            config: workerConfig(),
-        });
-        return true;
-    } catch (error) {
-        logDebug('physics worker unavailable: ' + (error.message || error), 'warn');
-        stopPhysicsWorker();
-        workerFailed = true;
-        return false;
-    }
+    return workerBridge.start();
 }
 
 async function boot() {
@@ -546,7 +447,7 @@ async function boot() {
     });
 
         insightEngine = createInsightEngine(bus, { scanInterval: 90, clusterRadius: 60, minClusterSize: 5 });
-    narrativeEngine = createNarrativeEngine(bus);
+    narrativeEngine = createNarrativeEngine(bus, { seed: WORKER_SEED });
     lineageEngine = createLineageTracker(bus);
     goalEngine = createGoalEngine(bus);
     timelineEngine = createTimelineEngine(bus, { autoSnapshotInterval: 0, maxSnapshots: 20 });
@@ -574,7 +475,24 @@ async function boot() {
     setGoalValue(goalEngine, 'birthRate', runtimeConfig.birthRate);
     setGoalValue(goalEngine, 'deathRate', runtimeConfig.deathRate);
     wireGoalEvents();
-    prevDead = new Uint8Array(particleCount);
+    intelligenceCadence = createIntelligenceCadence({
+        get particleView() { return particleView; },
+        get particleCount() { return particleCount; },
+        get tick() { return tick; },
+        get fps() { return fps; },
+        get insightEngine() { return insightEngine; },
+        get groupRegistry() { return groupRegistry; },
+        get lineageEngine() { return lineageEngine; },
+        get worldParams() { return worldParams; },
+        get epochEngine() { return epochEngine; },
+        tickInFlight: () => workerBridge.tickInFlight(),
+        onError: (error) => {
+            console.error('intelligence pass error:', error);
+            logDebug('INTELLIGENCE ERROR: ' + (error && (error.stack || error.message) || error), 'error');
+        },
+        getLawCount: () => getLawCount(lawState),
+    });
+    intelligenceCadence.reset();
 
     // Keep UI work on the main thread, but move the deterministic solver and
     // its spatial-grid/pairwise hot path off-thread whenever SAB is available.
@@ -588,88 +506,42 @@ async function boot() {
     bus.emit('boot:complete', { particleCount, speciesCount, dt });
 }
 
-// Fallback colours for user-added species beyond the built-in profiles
-// (matches the species panel's deterministic hue rotation).
-const EXTRA_SPECIES_COLORS = [
-    [120, 160, 255], [255, 140, 60], [180, 255, 120], [255, 120, 220],
-    [120, 255, 220], [240, 220, 100], [160, 120, 255], [255, 160, 160],
-];
-
-function profileColor(s) {
-    const p = SPECIES_PROFILES[s];
-    if (p) return p.color;
-    return EXTRA_SPECIES_COLORS[s % EXTRA_SPECIES_COLORS.length];
-}
-
-/**
- * Legacy camelCase aliases for saved profiles written before presets carried
- * canonical DNA_INDEXES names. Kept so an older saved profile still restores;
- * new profiles should use the canonical name directly.
- */
-const LEGACY_PROFILE_KEYS = Object.freeze({
-    force: 'FORCE', viscosity: 'VISCOSITY', birthRate: 'BIRTH_RATE',
-    predationBias: 'PREDATION_BIAS', fusion: 'FUSION', mutation: 'MUTATION',
-    signalResp: 'SIGNAL_RESP', pulseRate: 'PULSE_RATE', deathRate: 'DEATH_RATE',
-    hiddenMass: 'HIDDEN_MASS',
+// Boot species are derived from the active preset. The population manager
+// reads this same mutable list after resolveLaunchConfiguration refills it.
+const SPECIES_PROFILES = DEFAULT_PRESET.species.map((s) => ({ ...s, ...s.dna }));
+const populationManager = createPopulationManager({
+    get particleBuffer() { return particleBuffer; },
+    get particleView() { return particleView; },
+    get particleCount() { return particleCount; },
+    setParticleCount(value) { particleCount = value; },
+    get speciesCount() { return speciesCount; },
+    set speciesCount(value) { speciesCount = value; },
+    get speciesProfiles() { return SPECIES_PROFILES; },
+    get dnaBuffer() { return dnaBuffer; },
+    get worldParams() { return worldParams; },
+    get worldSize() { return worldSize; },
+    get launchSettings() { return launchSettings; },
+    get prng() { return prng; },
+    get spawnRate() { return spawnRate; },
+    get spawnAccumulator() { return spawnAccumulator; },
+    setSpawnAccumulator(value) { spawnAccumulator = value; },
+    get simSpeed() { return runtimeConfig.simSpeed; },
+    dt: DT,
+    workerTickInFlight: () => workerBridge.tickInFlight(),
+    drainOffspring,
+    get lineageEngine() { return lineageEngine; },
 });
 
-/**
- * Boot species, derived from the active preset so the two cannot drift.
- *
- * Previously this was a second, hand-maintained copy of the species list living
- * in main.js — changing the preset's species would not have changed what
- * actually spawned. It is a `let` list that `resolveLaunchConfiguration` refills
- * in place, so every closure that captured it at module scope sees the launch
- * choice rather than the compile-time default.
- */
-const SPECIES_PROFILES = DEFAULT_PRESET.species.map((s) => ({ ...s, ...s.dna }));
-
-/** Append one freshly spawned particle at `pos` with the given species. */
-function spawnSingleParticle(species, pos) {
-    if (_workerTickInFlight) return;
-    if (particleCount >= MAX_PARTICLES) return;
-    const idx = particleCount;
-    const ptr = idx * PARTICLE_STRIDE;
-    setX(particleBuffer, idx, PARTICLE_STRIDE, pos.x);
-    setY(particleBuffer, idx, PARTICLE_STRIDE, pos.y);
-    particleView[ptr + STRIDE_INDEXES.POS_Z] = pos.z;
-    setVelocity(particleBuffer, idx, PARTICLE_STRIDE, 0, 0, 0);
-    setMass(particleBuffer, idx, PARTICLE_STRIDE, 1.0 + prng.nextFloat(0, 1.0));
-    setSpeciesId(particleBuffer, idx, PARTICLE_STRIDE, species);
-    setEnergy(particleBuffer, idx, PARTICLE_STRIDE, 50 + prng.nextFloat(0, 50));
-    for (let d = 0; d < 42; d++) {
-        const r = DNA_RANGES[d] || { min: -1, max: 1 };
-        particleView[ptr + STRIDE_INDEXES.DNA_CACHE_START + d] = getDNAFloat(dnaBuffer, species, d, r.min, r.max);
-    }
-    const sp = SPECIES_PROFILES[species] || SPECIES_PROFILES[0];
-    particleView[ptr + STRIDE_INDEXES.COLOR_R] = sp.color[0];
-    particleView[ptr + STRIDE_INDEXES.COLOR_G] = sp.color[1];
-    particleView[ptr + STRIDE_INDEXES.COLOR_B] = sp.color[2];
-    particleView[ptr + STRIDE_INDEXES.DEAD] = 0;
-    particleView[ptr + STRIDE_INDEXES.AGE] = 0;
-    particleView[ptr + STRIDE_INDEXES.SIGNAL] = 0;
-    particleView[ptr + STRIDE_INDEXES.BOND_COUNT] = 0;
-    particleView[ptr + STRIDE_INDEXES.BOND_PARTNER_1] = -1;
-    particleView[ptr + STRIDE_INDEXES.BOND_PARTNER_2] = -1;
-    particleView[ptr + STRIDE_INDEXES.BOND_PARTNER_3] = -1;
-    particleView[ptr + STRIDE_INDEXES.BOND_PARTNER_4] = -1;
-    particleView[ptr + STRIDE_INDEXES.BOND_PARTNER_5] = -1;
-    particleView[ptr + STRIDE_INDEXES.BOND_PARTNER_6] = -1;
-    particleView[ptr + STRIDE_INDEXES.ACCR_LINK_MASK] = 0;
-    particleView[ptr + STRIDE_INDEXES.MEMORY] = 0;
-    particleView[ptr + STRIDE_INDEXES.HUNGER] = 0;
-    particleView[ptr + STRIDE_INDEXES.ARMOR] = prng.nextFloat(0, 0.5);
-    particleView[ptr + STRIDE_INDEXES.MITOSIS_TIMER] = 0;
-    particleView[ptr + STRIDE_INDEXES.PARTNER_ID] = -1;
-    particleView[ptr + STRIDE_INDEXES.TEMPERATURE] = 0.5;
-    particleView[ptr + STRIDE_INDEXES.CHARGE] = 0;
-    particleView[ptr + STRIDE_INDEXES.ALPHA] = 0.8;
-    particleView[ptr + STRIDE_INDEXES.RADIUS] = 0.6;
-    particleView[ptr + STRIDE_INDEXES.ENTANGLE_ID] = -1;
-    particleView[ptr + STRIDE_INDEXES.ENTANGLE_PHASE] = 0;
-    particleCount++;
+function profileColor(species) { return populationManager.profileColor(species); }
+function setDNAFromProfile(species, profile) { return populationManager.setDNAFromProfile(species, profile); }
+function spawnSingleParticle(species, pos) { return populationManager.spawnSingleParticle(species, pos); }
+function spawnDefaultPopulation(preserveDNA = false, keepSpecies = false) {
+    return populationManager.spawnDefaultPopulation(preserveDNA, keepSpecies);
 }
+function spawnOffspring(offspring = null) { return populationManager.spawnOffspring(offspring); }
+function advancePopulation(offspring = null) { return populationManager.advancePopulation(offspring); }
 
+/* Legacy inline population block replaced by the injected manager.
 function spawnDefaultPopulation(preserveDNA = false, keepSpecies = false) {
     const profiles = SPECIES_PROFILES;
 
@@ -782,13 +654,13 @@ function spawnDefaultPopulation(preserveDNA = false, keepSpecies = false) {
     particleCount = idx;
 }
 
-/** Repaint the atmospheric backdrop canvas (sized to the viewport). */
+// Repaint the atmospheric backdrop canvas (sized to the viewport).
 function refreshBackground() {
     const bg = document.getElementById('bg-canvas');
     if (bg) paintBackground(bg);
 }
 
-/** Spawn offspring produced by REPRO law into the particle buffer. */
+// Spawn offspring produced by REPRO law into the particle buffer.
 function spawnOffspring(offspring = null) {
     const list = offspring || drainOffspring();
     if (!list.length) return;
@@ -872,7 +744,15 @@ function setDNAFromProfile(species, profile) {
         const r = DNA_RANGES[paramIdx];
         dnaBuffer[species * 64 + paramIdx] = quantizeDNA(value, r.min, r.max);
     }
-}function wireEvents() {
+}
+*/
+
+function refreshBackground() {
+    const bg = document.getElementById('bg-canvas');
+    if (bg) paintBackground(bg);
+}
+
+function wireEvents() {
     const currentWorldState = (name = '') => captureWorldState({
         view: particleView,
         count: particleCount,
@@ -905,7 +785,7 @@ function setDNAFromProfile(species, profile) {
         emitUndoState();
     };
     const applyWorldRestore = (state) => {
-        const restoreWorker = !!physicsWorker;
+        const restoreWorker = workerBridge.isActive();
         stopPhysicsWorker();
         const out = restoreWorldState(state, {
             view: particleView,
@@ -1094,10 +974,10 @@ function setDNAFromProfile(species, profile) {
     bus.on('sim:pause', () => { paused = true; });
     bus.on('sim:resume', () => { paused = false; });
     bus.on('sim:restart', (opts = {}) => {
-        const restartWorker = !!physicsWorker;
+        const restartWorker = workerBridge.isActive();
         stopPhysicsWorker();
-        prng = new PRNG(launchSettings?.launchSeed ?? Date.now());
         WORKER_SEED = launchSettings?.launchSeed ?? (Date.now() | 0);
+        prng = new PRNG(WORKER_SEED);
         particleView.fill(0);
         resetOffspringRing();
         spawnDefaultPopulation(true, true);
@@ -1127,23 +1007,23 @@ function setDNAFromProfile(species, profile) {
         const shuffled = [];
         for (let i = 0; i < LAW_COUNT; i++) shuffled.push(i);
         for (let i = shuffled.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
+            const j = Math.floor(rng() * (i + 1));
             [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
         }
 
-        const groups = 3 + Math.floor(Math.random() * 3); // 3-5 groups
+        const groups = 3 + Math.floor(rng() * 3); // 3-5 groups
         const groupSize = Math.ceil(LAW_COUNT / groups);
-        const intensity = 0.3 + Math.random() * 0.7;
+        const intensity = 0.3 + rng() * 0.7;
 
         for (let i = 0; i < LAW_COUNT; i++) lawClear(lawState, i);
 
         for (let g = 0; g < groups; g++) {
             const start = g * groupSize;
             const end = Math.min(start + groupSize, LAW_COUNT);
-            const actProb = 0.4 + Math.random() * 0.6;
-            if (Math.random() > 0.3) { // 70% chance group activates
+            const actProb = 0.4 + rng() * 0.6;
+            if (rng() > 0.3) { // 70% chance group activates
                 for (let j = start; j < end; j++) {
-                    if (Math.random() < actProb) {
+                    if (rng() < actProb) {
                         lawSet(lawState, shuffled[j]);
                     }
                 }
@@ -1152,9 +1032,9 @@ function setDNAFromProfile(species, profile) {
 
         for (let s = 0; s < speciesCount; s++) {
             for (let p = 0; p < 42; p++) {
-                if (Math.random() > 0.85) {
+                if (rng() > 0.85) {
                     const r = DNA_RANGES[p];
-                    const val = r.min + Math.random() * (r.max - r.min);
+                    const val = r.min + rng() * (r.max - r.min);
                     dnaBuffer[s * 64 + p] = quantizeDNA(val, r.min, r.max);
                 }
             }
@@ -1182,8 +1062,8 @@ function setDNAFromProfile(species, profile) {
         for (const [catName, cat] of Object.entries(LAW_CATEGORIES)) {
             if (!activeCats[catName]) continue;
             for (const idx of cat.laws) {
-                if (Math.random() > 0.3) {
-                    if (Math.random() > 0.5) {
+                if (rng() > 0.3) {
+                    if (rng() > 0.5) {
                         lawSet(lawState, idx);
                     } else {
                         lawClear(lawState, idx);
@@ -1334,6 +1214,32 @@ function setDNAFromProfile(species, profile) {
         bus.emit('world:paramApplied', { key, value });
     });
 
+    // ── Easy Mode ControlProfile (RB) — atomic recipe patch ──
+    // One composite slider gesture arrives here as a single changes map. Each
+    // key runs through the canonical single-parameter path above (same side
+    // effects, same debounced undo snapshot — the pre-change snapshot lands on
+    // the first key, so the whole gesture undoes as one step), then one
+    // summary event closes the gesture for the Easy surface to re-project.
+    bus.on('world:paramsPatch', ({ changes, source, group, t } = {}) => {
+        if (!changes || typeof changes !== 'object') return;
+        const keys = Object.keys(changes);
+        if (!keys.length) return;
+        for (const key of keys) {
+            bus.emit('world:paramChanged', {
+                key,
+                value: changes[key],
+                source: source || 'controlProfile',
+            });
+        }
+        bus.emit('world:paramsApplied', {
+            changes,
+            affected: keys,
+            source: source || 'controlProfile',
+            group,
+            t,
+        });
+    });
+
 }
 
 let lastFrameTime = 0, frameCount = 0, fps = 0;
@@ -1359,7 +1265,7 @@ function wireGoalEvents() {
         if (!entry || !entry.data) return;
         particleView.set(entry.data);
         if (entry.metadata && entry.metadata.particleCount) particleCount = entry.metadata.particleCount;
-        prevDead = new Uint8Array(particleCount);
+        intelligenceCadence.reset();
         tick = entry.tick;
         bus.emit('timeline:restored', { index: entry.index, tick: entry.tick });
     });
@@ -1373,88 +1279,16 @@ function wireGoalEvents() {
     });
 }
 
-function computeMetrics() {
-    let alive = 0, energySum = 0;
-    const speciesAlive = new Set();
-    const speciesPop = {};
-    const speciesEnergy = {};
-    const speciesMass = {};
-    const speciesPos = {};
-    for (let i = 0; i < particleCount; i++) {
-        const base = i * PARTICLE_STRIDE;
-        if (particleView[base + STRIDE_INDEXES.DEAD] < 0.5 && (particleView[base + STRIDE_INDEXES.MASS] || 0) > 0) {
-            alive++;
-            const sp = particleView[base + STRIDE_INDEXES.SPECIES_ID] || 0;
-            const e = particleView[base + STRIDE_INDEXES.ENERGY] || 0;
-            energySum += e;
-            speciesAlive.add(sp);
-            speciesPop[sp] = (speciesPop[sp] || 0) + 1;
-            speciesEnergy[sp] = (speciesEnergy[sp] || 0) + e;
-            speciesMass[sp] = (speciesMass[sp] || 0) + (particleView[base + STRIDE_INDEXES.MASS] || 0);
-            const pos = speciesPos[sp] || (speciesPos[sp] = [0, 0, 0]);
-            pos[0] += particleView[base + STRIDE_INDEXES.POS_X];
-            pos[1] += particleView[base + STRIDE_INDEXES.POS_Y];
-            pos[2] += particleView[base + STRIDE_INDEXES.POS_Z];
-        }
-    }
-    const clusterCount = insightEngine && insightEngine.lastClusters
-        ? insightEngine.lastClusters.clusters.length : 0;
-    return {
-        populationAlive: alive,
-        speciesAlive: speciesAlive.size,
-        clusterCount,
-        groupCount: groupRegistry ? groupRegistry.groups.size : 0,
-        avgEnergy: alive ? energySum / alive : 0,
-        frameDelta: fps,
-        lawActiveCount: getLawCount(lawState),
-        speciesPop,
-        speciesEnergy,
-        speciesMass,
-        speciesPos,
-    };
-}
-
-function getMetrics() {
-    if (!_cachedMetrics || _metricsTick < 0 || tick < _metricsTick || tick - _metricsTick >= METRICS_CADENCE) {
-        _cachedMetrics = computeMetrics();
-        _metricsTick = tick;
-    } else {
-        _cachedMetrics.lawActiveCount = getLawCount(lawState);
-    }
-    return _cachedMetrics;
-}
-
+function getMetrics() { return intelligenceCadence.getMetrics(); }
 function adaptCultureFromMetrics(buffers, metrics) {
-    const rate = (worldParams.CULTURAL_TRANSMISSION || 0.5) * 0.5;
-    const threatSignal = epochEngine && epochEngine.extinctionOpen ? 1 : 0;
-    for (const key of Object.keys(metrics.speciesPop || {})) {
-        const id = Number(key);
-        const pop = metrics.speciesPop[key] || 0;
-        const energy = metrics.speciesEnergy[key] || 0;
-        const avgEnergy = pop ? energy / pop : 0;
-        const mem = speciesMemory(buffers, id);
-        adaptMemory(mem, [
-            Math.max(0, Math.min(1, avgEnergy / 100)),
-            Math.max(-1, Math.min(1, (pop / 200) * 2 - 1)),
-            pop > 100 ? -0.5 : 0.5,
-            threatSignal,
-        ], rate);
-    }
+    return intelligenceCadence.adaptCultureFromMetrics(buffers, metrics);
 }
 
 /** Run insight, narrative, lineage, timeline, and goal engines each tick. */
 function updateIntelligence() {
-    // Worker completion owns intelligence; never scan the live buffer once per
-    // paint while the off-thread solver is still running.
-    if (_workerTickInFlight) return;
-    // Guard: a single failing intelligence pass must never kill the frame
-    // loop (which would blank the canvas while the UI stays responsive).
-    try {
-        updateIntelligenceCore();
-    } catch (e) {
-        console.error('intelligence pass error:', e);
-        logDebug('INTELLIGENCE ERROR: ' + (e && (e.stack || e.message) || e), 'error');
-    }
+    // The cadence module protects the frame loop and avoids scanning while
+    // the worker owns the live particle buffer.
+    intelligenceCadence.run(updateIntelligenceCore);
 }
 
 function updateIntelligenceCore() {
@@ -1477,24 +1311,7 @@ function updateIntelligenceCore() {
     // Lineage — death transitions (births are tracked in spawnOffspring).
     // Scanned on a cadence: deaths are rare events, and the O(N) pass is
     // pure per-frame overhead otherwise.
-    if (lineageEngine && tick % LINEAGE_CADENCE === 0) {
-        if (prevDead.length < particleCount) {
-            const grown = new Uint8Array(particleCount);
-            grown.set(prevDead);
-            prevDead = grown;
-        }
-        for (let i = 0; i < particleCount; i++) {
-            const base = i * PARTICLE_STRIDE;
-            const dead = particleView[base + STRIDE_INDEXES.DEAD] >= 0.5 ? 1 : 0;
-            if (dead && !prevDead[i]) {
-                let cause = 'unknown';
-                if ((particleView[base + STRIDE_INDEXES.HUNGER] || 0) >= 100) cause = 'starvation';
-                else if ((particleView[base + STRIDE_INDEXES.ENERGY] || 0) <= 0) cause = 'energy-depletion';
-                trackDeath(lineageEngine, i, cause);
-            }
-            prevDead[i] = dead;
-        }
-    }
+    intelligenceCadence.scanDeaths();
 
     // Timeline — recording snapshots on a fixed cadence
     if (timelineEngine && timelineRecording && tick % TIMELINE_SNAPSHOT_INTERVAL === 0) {
@@ -1765,7 +1582,8 @@ function updateIntelligenceCore() {
 
 /** Reset intelligence state on simulation restart. */
 function resetIntelligence() {
-    prevDead = new Uint8Array(particleCount);
+    if (intelligenceCadence) intelligenceCadence.reset();
+    if (narrativeEngine) resetNarrativeEngine(narrativeEngine, WORKER_SEED);
     if (insightEngine) { insightEngine.frame = 0; insightEngine.history = []; insightEngine.lastClusters = null; }
     if (goalEngine) { goalEngine.frame = 0; goalEngine.history = []; }
     if (timelineEngine) clearTimelineEngine(timelineEngine);
@@ -1846,22 +1664,10 @@ function renderLoop(now) {
     if (particleView) {
         const tickStart = performance.now();
         const solvedLocally = solve(particleView, particleCount, PARTICLE_STRIDE, lawState, dnaBuffer, worldSize, DT * runtimeConfig.simSpeed, rng);
-        if (solvedLocally) spawnOffspring();
         if (solvedLocally) {
-            // Regular population feed — SPAWN_RATE particles per second, placed
-            // randomly within the configured initial spawn distribution.
-            // Capped by MAX_POP (soft cap) and PARTICLE_COUNT (hard cap).
-            const caps = spawnCaps(worldParams);
-            if (spawnRate > 0 && particleCount < caps.softCap) {
-                spawnAccumulator += spawnRate * (DT * runtimeConfig.simSpeed);
-                while (spawnAccumulator >= 1 && particleCount < caps.softCap) {
-                    spawnAccumulator -= 1;
-                    spawnSingleParticle(
-                        Math.floor(prng.nextFloat(0, speciesCount)),
-                        sampleSpawnPosition(worldParams, worldSize, prng),
-                    );
-                }
-            }
+            // Population mutation is part of the extracted manager; worker
+            // ticks reach the same operation from finishPhysicsTick().
+            advancePopulation();
             tick++;
             updateIntelligence();
             perfTickMs = emaPerf(perfTickMs, performance.now() - tickStart);

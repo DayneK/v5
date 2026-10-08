@@ -18,6 +18,17 @@ describe('SplitMix32 PRNG', () => {
         expect(seqA).not.toEqual(seqB);
     });
 
+    it('matches the former worker sequence for the same seed', () => {
+        const prng = new SplitMix32(0x51f15e);
+        expect(Array.from({ length: 5 }, () => prng.next())).toEqual([
+            0.24647275963798165,
+            0.4360801156144589,
+            0.3666450579185039,
+            0.3821293441578746,
+            0.5394132134970278,
+        ]);
+    });
+
     it('next() returns values in [0, 1)', () => {
         const prng = new SplitMix32(123);
         for (let i = 0; i < 2000; i++) {

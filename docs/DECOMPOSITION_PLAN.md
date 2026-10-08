@@ -1,17 +1,20 @@
 # Monolith Decomposition Plan
 
-**Project:** VEPA4 9.1.22
-**Status:** 📋 **PROPOSED — awaiting review. No decomposition has been executed.**
+**Project:** VEPA4 9.4.0 worktree update
+**Status:** ✅ **APPROVED 2026-10-08 (owner go-ahead: "proceed") — P4 steps 1–3 implemented and verified in the working tree.** Worker transport (`src/workerBridge.js`), population lifecycle (`src/spawn/population.js`), and metrics/death/memory cadence (`src/intelligenceCadence.js`) are extracted behind injected contexts and facades. Syntax, full unit suite, repository/spec checks, production build, and managed-preview e2e gates pass; all other phases remain open. Priority cross-reference: `docs/ARCHITECTURE_PRIORITIES.md`.
 **Origin:** audit remediation program — decomposition tasks were explicitly
 deferred while every other remediation item was completed (see
 `AUDIT_REMEDIATION_PLAN.md`, §3 ranks 1–12).
 **Method:** line counts, export/import fan-out, section-banner and cohesion
 analysis of the working tree at the time of writing.
 
-> **Confirmation gate:** this document is the deliverable the user asked to
-> review before any decomposition proceeds. Nothing below is implemented.
-> Approve the whole plan, a subset (per Phase), or request changes — only then
-> do the extractions start.
+> **Confirmation gate — satisfied 2026-10-08:** the owner approved execution
+> ("proceed"). P4 steps 1–3 are implemented as separate, behavior-preserving
+> extractions. The shared gates pass: syntax, 1,629 Vitest tests, repository
+> checks, build, and 11/11 managed-preview browser tests. The browser tests were
+> split into bounded runs because of preview latency; cross-browser/device and
+> screenshot gating remain open as described in the QA matrix. Remaining phases
+> retain their own gates.
 
 ---
 
@@ -186,16 +189,36 @@ src/workerBridge.js     canUsePhysicsWorker/start/stop/sync/handleWorkerTick/
 src/spawn/population.js  spawnSingleParticle/spawnDefaultPopulation/
                          spawnOffspring/advancePopulation/setDNAFromProfile +
                          SPECIES_PROFILES/EXTRA_SPECIES_COLORS
-src/intelligenceCadence.js  computeMetrics/getMetrics/updateIntelligence*/
-                            adaptCultureFromMetrics/resetIntelligence/wireGoalEvents
+src/intelligenceCadence.js  metrics cache / death-transition scan /
+                            memory adaptation / guarded pass wrapper (injected)
 src/main.js            ← boot(), applyPrimeWorldConfig(), renderLoop(), wiring
 ```
 - **Risk: high** — module-level mutable state and event-bus wiring order are
   load-bearing; `main.js` is not unit-tested directly (covered by e2e
   `runtime-acceptance.spec.js`).
-- **Order:** extract in the list order above (worker bridge first — most
-  self-contained), one commit each, e2e smoke (`npx playwright test
-  tests/e2e/runtime-acceptance.spec.js`) after each.
+-**Order:** extract in the list order above (worker bridge first — most
+self-contained), one commit each, e2e smoke (`npx playwright test
+tests/e2e/runtime-acceptance.spec.js`) after each.
+
+**P4 steps 1–3 executed 2026-10-08:**
+
+1. Worker lifecycle, CONFIG/TICK queueing, and serialized in-flight tick moved
+   to `src/workerBridge.js` behind injected `ctx`; `main.js` keeps its facade
+   wrappers. Tick completion consequences remain in `main.js`, called via
+   `ctx.onTickComplete`.
+2. Spawn/profile/offspring and regular spawn cadence moved to
+   `src/spawn/population.js`; the render loop and worker completion both use
+   the same manager. Its injected live state prevents stale population values.
+3. Metrics caching, cadence-gated death-transition scans, memory adaptation,
+   worker in-flight guarding, and error containment moved to
+   `src/intelligenceCadence.js`. `main.js` retains engine ordering and delegates
+   through a context facade; reset/invalidate semantics preserve timeline scrub
+   and worker-stop behavior.
+
+All three modules and their focused tests are listed in the D5 module catalog.
+The extraction adds focused population and cadence tests; full syntax, Vitest,
+repository, build, and browser checks are reported in the current changelog
+entry after final verification.
 
 ---
 
@@ -239,8 +262,10 @@ unaffected · P3 ≈ 149 unaffected · P4 ≈ e2e-only surface.
 
 ## 8. What was deliberately NOT done
 
-Per the user's instruction, **no decomposition has been performed yet**. The
-remediation program items 1–12 (audit signoff gates, WebGPU evidence, backend
+The remediation program came first. After approval on 2026-10-08, P4 steps
+1–3 were executed as tracked in §5; all other decomposition phases remain
+pending and retain their listed acceptance gates.
+Separately, the remediation program items 1–12 (audit signoff gates, WebGPU evidence, backend
 envelopes, FMM decision, mechanics geometry/diagnostics, ontology expansion,
 semantic tests, provenance/exports/historical tooling, stale-claim correction)
 were completed first and are recorded in `CHANGELOG.md`, `BACKEND_ENVELOPES.md`,

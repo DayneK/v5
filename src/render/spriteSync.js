@@ -95,6 +95,12 @@ function syncCanvas2D(renderer, particleBuffer, particleCount, stride, worldSize
 /**
  * Check if a specific law is active in the bitmask state.
  */
+export function shouldDrawChaosScanline(row) {
+    let hash = Math.imul((row | 0) ^ 0x9e3779b9, 0x85ebca6b);
+    hash ^= hash >>> 13;
+    return (hash >>> 0) % 10 >= 7;
+}
+
 function isLawActive(lawState, lawIndex) {
     if (lawIndex < 32) {
         return (lawState.lowFlags[0] & (1 << lawIndex)) !== 0;
@@ -122,7 +128,7 @@ function drawLawOverlays(ctx, width, height, lawState) {
         ctx.strokeStyle = '#ff4444';
         ctx.lineWidth = 1;
         for (let y = 0; y < height; y += 4) {
-            if (Math.random() > 0.7) {
+            if (shouldDrawChaosScanline(y)) {
                 ctx.beginPath();
                 ctx.moveTo(0, y);
                 ctx.lineTo(width, y);

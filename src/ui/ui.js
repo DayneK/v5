@@ -83,6 +83,8 @@ const TAB_STRIP_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown
  * @param {string} panelSelector     the panels those buttons reveal
  * @param {string} key               the dataset property naming the panel id
  */
+let generatedTabId = 0;
+
 function wireTabStrip(strip, buttonSelector, panelSelector, key) {
   if (!strip) return [];
   const buttons = [...strip.querySelectorAll(buttonSelector)];
@@ -108,7 +110,7 @@ function wireTabStrip(strip, buttonSelector, panelSelector, key) {
   };
 
   for (const btn of buttons) {
-    if (!btn.id) btn.id = `tabbtn-${key}-${btn.dataset[key] || Math.random().toString(36).slice(2, 8)}`;
+    if (!btn.id) btn.id = `tabbtn-${key}-${btn.dataset[key] || ++generatedTabId}`;
     btn.setAttribute('role', 'tab');
     if (btn.dataset[key]) btn.setAttribute('aria-controls', btn.dataset[key]);
     btn.addEventListener('click', () => activate(btn));
